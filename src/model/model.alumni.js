@@ -6,13 +6,20 @@ const alumniSchema = new mongoose.Schema({
         ref: "User",
         required: true,
     },
+    verified: {
+        type: Boolean,
+        default: false,
+    },
     graduationYear: {
         type: Number,
         required: true,
     },
+    degreeUrl: {
+        type: String,
+        required: true,
+    },
     skills: {
         type: [String],
-        required: true,
     },
 });
 

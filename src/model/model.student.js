@@ -16,7 +16,7 @@ const studentSchema = new mongoose.Schema({
         degreeName: { type: String, required: true },
         isCompleted: { type: Boolean, default: false },
         completionDate: { type: Date },
-        currentYear: { type: Number },
+        currentYear: { type: Number, default: 1 },
     },
 });
 
