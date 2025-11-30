@@ -1,40 +1,21 @@
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema({
-  role: {
-    type: String,
-    enum: ["student", "alumni", "admin"],
-    required: true
-  },
+    name: { type: String, required: true, unique: true },
+    email: { type: String, required: true, unique: true },
+    passwordHash: { type: String, required: true },
+    userType: { type: String, enum: ["student", "alumni"], required: true },
+    profileDetails: {
+        type: mongoose.Schema.Types.ObjectId,
+        refPath: "userTypeDetails",
+    },
+    userTypeDetails: {
+        type: String,
+        required: true,
+        enum: ["Student", "Alumni"],
+    },
 
-  // Common Fields
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  phone: { type: String },
-  password: { type: String, required: true },
-  avatar: { type: String },
-
-  // Student Fields
-  branch: { type: String },
-  year: { type: Number },
-  skills: [{ type: String }],
-  interests: [{ type: String }],
-  resumeLink: { type: String },
-  lookingFor: { type: String }, // internship / guidance / mentorship
-
-  // Alumni Fields
-  batch: { type: Number },
-  currentCompany: { type: String },
-  currentRole: { type: String },
-  openTo: [{ type: String }], // hiring / mentoring / talks
-
-  // Matching score or AI-based insights (optional)
-  matchingScore: { type: Number, default: 0 },
-
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+    createdAt: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model("User", userSchema);

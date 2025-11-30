@@ -11,17 +11,9 @@ const jobSchema = new mongoose.Schema({
 
   postedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true // alumni
+    ref: "Alumni",
+    required: true 
   },
-
-  applicants: [
-    {
-      student: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      resume: { type: String },
-      appliedAt: { type: Date, default: Date.now }
-    }
-  ],
 
   createdAt: { type: Date, default: Date.now }
 });
