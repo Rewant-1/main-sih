@@ -13,7 +13,7 @@ const connectionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["pending", "accepted", "rejected"],
+        enum: ["pending", "accepted"],
         default: "pending",
     },
     connectionDate: { type: Date, default: Date.now },

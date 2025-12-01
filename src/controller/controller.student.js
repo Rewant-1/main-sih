@@ -127,8 +127,8 @@ const createStudents = async (req, res) => {
 };
 
 module.exports = {
-    getStudents,
-    getStudentById,
-    updateStudent,
+    // getStudents,
+    // getStudentById,
+    // updateStudent,
     createStudents,
 };

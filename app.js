@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 dotenv.config();
 const authRoutes = require('./src/routes/routes.auth');
-// const studentRoutes = require('./src/routes/routes.student');
+const studentRoutes = require('./src/routes/routes.student');
+const connectionRoutes = require('./src/routes/routes.connection');
 // const alumniRoutes = require('./src/routes/routes.alumni');
 // const chatRoutes = require('./src/routes/routes.chat.js');
 // const eventRoutes = require('./src/routes/routes.event.js');
@@ -29,7 +30,8 @@ db.once('open', () => {
 });
 
 app.use('/auth', authRoutes);
-// app.use('/students', studentRoutes);
+app.use('/students', studentRoutes);
+app.use('/connections', connectionRoutes);
 // app.use('/alumni', alumniRoutes);
 // app.use('/chats', chatRoutes);
 // app.use('/events', eventRoutes);
