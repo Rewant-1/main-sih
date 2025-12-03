@@ -73,6 +73,9 @@ export const jobsApi = {
     api.put<ApiResponse<Job>>(`/jobs/${id}`, data),
   delete: (id: string) => api.delete<ApiResponse<void>>(`/jobs/${id}`),
   apply: (id: string) => api.post<ApiResponse<void>>(`/jobs/${id}/apply`),
+  getMyPosted: () => api.get<ApiResponse<Job[]>>('/jobs/my/posted'),
+  updateApplicationStatus: (jobId: string, applicationId: string, status: string) =>
+    api.patch<ApiResponse<Job>>(`/jobs/${jobId}/application-status`, { applicationId, status }),
 };
 
 // Events API
@@ -176,4 +179,41 @@ export const campaignsApi = {
     api.get<ApiResponse<Campaign[]>>('/campaigns/active'),
   donate: (id: string, data: CreateDonationData) =>
     api.post<ApiResponse<Campaign>>(`/campaigns/${id}/donate`, data),
+};
+
+// Analytics Tracking API (for user behavior)
+export const analyticsApi = {
+  trackEvent: (data: { eventType: string; metadata?: Record<string, unknown> }) =>
+    api.post<ApiResponse<unknown>>('/analytics/track', data),
+  trackBatch: (events: { eventType: string; metadata?: Record<string, unknown> }[]) =>
+    api.post<ApiResponse<unknown>>('/analytics/track/batch', { events }),
+};
+
+// KYC API (for alumni verification)
+export const kycApi = {
+  getMyKYC: () => api.get<ApiResponse<unknown>>('/kyc/me'),
+  getById: (kycId: string) => api.get<ApiResponse<unknown>>(`/kyc/${kycId}`),
+  submit: (data: FormData) =>
+    api.post<ApiResponse<unknown>>('/kyc', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  resubmit: (kycId: string, data: FormData) =>
+    api.put<ApiResponse<unknown>>(`/kyc/${kycId}/resubmit`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  addDocument: (kycId: string, document: File) => {
+    const formData = new FormData();
+    formData.append('document', document);
+    return api.post<ApiResponse<unknown>>(`/kyc/${kycId}/documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+};
+
+// Invitations API (for accepting invitations)
+export const invitationsApi = {
+  validateToken: (token: string) =>
+    api.get<ApiResponse<unknown>>(`/invitations/validate/${token}`),
+  acceptInvitation: (token: string, data: { password: string; name?: string }) =>
+    api.post<ApiResponse<unknown>>(`/invitations/accept/${token}`, data),
 };

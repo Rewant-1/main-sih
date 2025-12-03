@@ -13,6 +13,12 @@ const campaignRoutes = require('./routes.campaign.js');
 const surveyRoutes = require('./routes.survey.js');
 const successStoryRoutes = require('./routes.successStory.js');
 const newsletterRoutes = require('./routes.newsletter.js');
+// New routes for Data Integrity & Analytics
+const auditLogRoutes = require('./routes.auditLog.js');
+const bulkImportRoutes = require('./routes.bulkImport.js');
+const invitationRoutes = require('./routes.invitation.js');
+const kycRoutes = require('./routes.kyc.js');
+const analyticsRoutes = require('./routes.analytics.js');
 
 const v1 = express.Router();
 
@@ -30,5 +36,11 @@ v1.use('/campaigns', campaignRoutes);
 v1.use('/surveys', surveyRoutes);
 v1.use('/success-stories', successStoryRoutes);
 v1.use('/newsletters', newsletterRoutes);
+// New routes
+v1.use('/audit-logs', auditLogRoutes);
+v1.use('/bulk-imports', bulkImportRoutes);
+v1.use('/invitations', invitationRoutes);
+v1.use('/kyc', kycRoutes);
+v1.use('/analytics', analyticsRoutes);
 
 module.exports = v1;

@@ -21,6 +21,8 @@ import {
   ArrowDownRight,
   GraduationCap,
   Building2,
+  Download,
+  RefreshCw,
 } from "lucide-react";
 
 import { AdminLayout } from "@/components/admin-layout";
@@ -47,6 +49,14 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  AnalyticsDashboardSkeleton,
+  StatCardSkeleton,
+  BarChartSkeleton,
+  ActivityFeedSkeleton,
+} from "@/components/ui/skeletons";
+import { apiClient } from "@/lib/api-client";
+import { useToast } from "@/hooks/use-toast";
 
 // Analytics data types
 interface OverviewStats {
@@ -222,9 +232,169 @@ function MiniBarChart({ data }: { data: ChartData[] }) {
   );
 }
 
+// Activity Heatmap component
+function ActivityHeatmap({ data }: { data: number[][] }) {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const max = Math.max(...data.flat());
+  
+  const getColor = (value: number) => {
+    if (value === 0) return "bg-muted";
+    const intensity = Math.min(Math.floor((value / max) * 4), 4);
+    const colors = [
+      "bg-primary/20",
+      "bg-primary/40",
+      "bg-primary/60",
+      "bg-primary/80",
+      "bg-primary",
+    ];
+    return colors[intensity];
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-25 gap-0.5">
+        <div className="col-span-1"></div>
+        {Array.from({ length: 24 }).map((_, h) => (
+          <div key={h} className="text-[10px] text-center text-muted-foreground">
+            {h % 6 === 0 ? `${h}h` : ""}
+          </div>
+        ))}
+      </div>
+      {days.map((day, dayIndex) => (
+        <div key={day} className="grid grid-cols-25 gap-0.5">
+          <div className="text-xs text-muted-foreground">{day}</div>
+          {Array.from({ length: 24 }).map((_, hour) => (
+            <div
+              key={hour}
+              className={`h-3 w-full rounded-sm ${getColor(data[dayIndex]?.[hour] || 0)}`}
+              title={`${day} ${hour}:00 - ${data[dayIndex]?.[hour] || 0} events`}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = React.useState("30d");
-  const [stats] = React.useState<OverviewStats>(mockOverviewStats);
+  const [loading, setLoading] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [stats, setStats] = React.useState<OverviewStats>(mockOverviewStats);
+  const [metrics, setMetrics] = React.useState<{
+    current: Record<string, number>;
+    changes: Record<string, string>;
+  } | null>(null);
+  const [heatmap, setHeatmap] = React.useState<number[][]>([]);
+  const { toast } = useToast();
+
+  // Calculate date range based on selection
+  const getDateRange = React.useCallback(() => {
+    const end = new Date();
+    let start: Date;
+    switch (timeRange) {
+      case "7d":
+        start = subDays(end, 7);
+        break;
+      case "90d":
+        start = subDays(end, 90);
+        break;
+      case "1y":
+        start = subMonths(end, 12);
+        break;
+      default:
+        start = subDays(end, 30);
+    }
+    return { startDate: start.toISOString(), endDate: end.toISOString() };
+  }, [timeRange]);
+
+  // Fetch analytics data
+  const fetchAnalytics = React.useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      const { startDate, endDate } = getDateRange();
+
+      const [dashboardRes, heatmapRes] = await Promise.allSettled([
+        apiClient.get("/analytics/dashboard", { params: { startDate, endDate } }),
+        apiClient.get("/analytics/heatmap", { params: { startDate, endDate } }),
+      ]);
+
+      if (dashboardRes.status === "fulfilled" && dashboardRes.value.data?.success) {
+        const data = dashboardRes.value.data.data;
+        setMetrics({
+          current: data.current,
+          changes: data.changes || {},
+        });
+        // Map API data to stats format
+        setStats({
+          totalAlumni: data.current?.uniqueUsers || mockOverviewStats.totalAlumni,
+          totalStudents: mockOverviewStats.totalStudents,
+          totalJobs: data.current?.jobViews || mockOverviewStats.totalJobs,
+          totalEvents: data.current?.eventRegistrations || mockOverviewStats.totalEvents,
+          totalConnections: data.current?.connectionsMade || mockOverviewStats.totalConnections,
+          totalPosts: mockOverviewStats.totalPosts,
+          totalDonations: mockOverviewStats.totalDonations,
+          totalCampaigns: mockOverviewStats.totalCampaigns,
+        });
+      }
+
+      if (heatmapRes.status === "fulfilled" && heatmapRes.value.data?.success) {
+        setHeatmap(heatmapRes.value.data.data || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch analytics:", error);
+      // Keep using mock data on error
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [getDateRange]);
+
+  React.useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  // Handle export
+  const handleExport = async (format: "json" | "csv") => {
+    try {
+      const { startDate, endDate } = getDateRange();
+      const res = await apiClient.get("/analytics/export", {
+        params: { startDate, endDate, format },
+      });
+
+      if (res.data?.success) {
+        const dataStr = JSON.stringify(res.data.data, null, 2);
+        const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `analytics-${format}-${new Date().toISOString().split("T")[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Export successful",
+          description: "Analytics data has been downloaded.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export analytics data.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <AnalyticsDashboardSkeleton />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -237,17 +407,32 @@ export default function AnalyticsPage() {
               Monitor platform performance and engagement
             </p>
           </div>
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select time range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchAnalytics(true)}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => handleExport("json")}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select time range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="1y">Last year</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Overview Stats */}
@@ -255,8 +440,8 @@ export default function AnalyticsPage() {
           <StatCard
             title="Total Alumni"
             value={stats.totalAlumni}
-            change={12.5}
-            changeType="increase"
+            change={metrics?.changes?.uniqueUsers ? parseFloat(metrics.changes.uniqueUsers) : 12.5}
+            changeType={metrics?.changes?.uniqueUsers && parseFloat(metrics.changes.uniqueUsers) < 0 ? "decrease" : "increase"}
             icon={GraduationCap}
           />
           <StatCard
@@ -269,15 +454,15 @@ export default function AnalyticsPage() {
           <StatCard
             title="Active Jobs"
             value={stats.totalJobs}
-            change={15.3}
-            changeType="increase"
+            change={metrics?.changes?.jobViews ? parseFloat(metrics.changes.jobViews) : 15.3}
+            changeType={metrics?.changes?.jobViews && parseFloat(metrics.changes.jobViews) < 0 ? "decrease" : "increase"}
             icon={Briefcase}
           />
           <StatCard
             title="Upcoming Events"
             value={stats.totalEvents}
-            change={5.1}
-            changeType="decrease"
+            change={metrics?.changes?.eventRegistrations ? parseFloat(metrics.changes.eventRegistrations) : 5.1}
+            changeType={metrics?.changes?.eventRegistrations && parseFloat(metrics.changes.eventRegistrations) < 0 ? "decrease" : "increase"}
             icon={Calendar}
           />
         </div>
@@ -287,8 +472,8 @@ export default function AnalyticsPage() {
           <StatCard
             title="Total Connections"
             value={stats.totalConnections}
-            change={23.4}
-            changeType="increase"
+            change={metrics?.changes?.connectionsMade ? parseFloat(metrics.changes.connectionsMade) : 23.4}
+            changeType={metrics?.changes?.connectionsMade && parseFloat(metrics.changes.connectionsMade) < 0 ? "decrease" : "increase"}
             icon={Link2}
           />
           <StatCard
@@ -337,6 +522,19 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Activity Heatmap */}
+        {heatmap.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Activity Heatmap</CardTitle>
+              <CardDescription>Platform activity by day and hour</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ActivityHeatmap data={heatmap} />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Tabs for detailed analytics */}
         <Tabs defaultValue="departments" className="space-y-4">

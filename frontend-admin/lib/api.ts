@@ -55,8 +55,10 @@ export const alumniApi = {
   getById: (id: string) => api.get<ApiResponse<Alumni>>(`/alumni/${id}`),
   update: (id: string, data: Partial<Alumni>) =>
     api.put<ApiResponse<Alumni>>(`/alumni/${id}`, data),
-  verify: (id: string) =>
-    api.post<ApiResponse<Alumni>>('/auth/verify/alumni', { alumniId: id }),
+  verify: (alumniId: string) =>
+    api.post<ApiResponse<Alumni>>(`/auth/verify/${alumniId}`, {}, {
+      headers: { 'x-internal-api-key': process.env.NEXT_PUBLIC_INTERNAL_API_KEY || '' }
+    }),
 };
 
 // Students API
@@ -65,6 +67,8 @@ export const studentsApi = {
   getById: (id: string) => api.get<ApiResponse<Student>>(`/students/${id}`),
   create: (data: Partial<Student>) =>
     api.post<ApiResponse<Student>>('/students', data),
+  bulkCreate: (students: Partial<Student>[]) =>
+    api.post<ApiResponse<{ created: number; failed: unknown[] }>>('/students/bulk-create', { students }),
 };
 
 // Jobs API
@@ -76,6 +80,9 @@ export const jobsApi = {
     api.put<ApiResponse<Job>>(`/jobs/${id}`, data),
   delete: (id: string) => api.delete<ApiResponse<void>>(`/jobs/${id}`),
   apply: (id: string) => api.post<ApiResponse<void>>(`/jobs/${id}/apply`),
+  getMyPosted: () => api.get<ApiResponse<Job[]>>('/jobs/my/posted'),
+  updateApplicationStatus: (jobId: string, applicationId: string, status: string) =>
+    api.patch<ApiResponse<Job>>(`/jobs/${jobId}/application-status`, { applicationId, status }),
 };
 
 // Events API
@@ -190,8 +197,103 @@ export const analyticsApi = {
   getDashboard: () => api.get<ApiResponse<DashboardAnalytics>>('/analytics/dashboard'),
   getAlumniStats: () => api.get<ApiResponse<unknown>>('/analytics/alumni'),
   getEngagement: () => api.get<ApiResponse<unknown>>('/analytics/engagement'),
+  getTimeSeries: (params?: { startDate?: string; endDate?: string; interval?: string }) =>
+    api.get<ApiResponse<unknown>>('/analytics/timeseries', { params }),
+  getEventCounts: (params?: { startDate?: string; endDate?: string }) =>
+    api.get<ApiResponse<unknown>>('/analytics/events', { params }),
+  getUserActivity: (userId: string) => api.get<ApiResponse<unknown>>(`/analytics/users/${userId}`),
+  getFunnel: () => api.get<ApiResponse<unknown>>('/analytics/funnel'),
+  getHeatmap: () => api.get<ApiResponse<unknown>>('/analytics/heatmap'),
+  getSummary: () => api.get<ApiResponse<unknown>>('/analytics/summary'),
+  generateSummary: () => api.post<ApiResponse<unknown>>('/analytics/summary/generate'),
+  trackEvent: (data: { eventType: string; metadata?: Record<string, unknown> }) =>
+    api.post<ApiResponse<unknown>>('/analytics/track', data),
   exportData: (format: 'csv' | 'pdf' | 'excel') => 
     api.get(`/analytics/export?format=${format}`, { responseType: 'blob' }),
+};
+
+// Audit Logs API
+export const auditLogsApi = {
+  getAll: (params?: { page?: number; limit?: number; action?: string; resourceType?: string; startDate?: string; endDate?: string }) =>
+    api.get<ApiResponse<{ logs: unknown[]; total: number; page: number; totalPages: number }>>('/audit-logs', { params }),
+  getStats: () => api.get<ApiResponse<unknown>>('/audit-logs/stats'),
+  getResourceHistory: (resourceType: string, resourceId: string) =>
+    api.get<ApiResponse<unknown[]>>(`/audit-logs/resource/${resourceType}/${resourceId}`),
+  getUserActivity: (userId: string) =>
+    api.get<ApiResponse<unknown[]>>(`/audit-logs/user/${userId}`),
+  cleanup: (olderThanDays: number) =>
+    api.post<ApiResponse<{ deletedCount: number }>>('/audit-logs/cleanup', { olderThanDays }),
+};
+
+// Bulk Imports API
+export const bulkImportsApi = {
+  getAll: (params?: { page?: number; limit?: number }) =>
+    api.get<ApiResponse<{ imports: unknown[]; total: number }>>('/bulk-imports', { params }),
+  getTemplate: (importType: 'alumni' | 'students') =>
+    api.get<ApiResponse<{ columns: string[] }>>(`/bulk-imports/template/${importType}`),
+  getStatus: (importId: string) =>
+    api.get<ApiResponse<unknown>>(`/bulk-imports/${importId}/status`),
+  getResults: (importId: string) =>
+    api.get<ApiResponse<unknown>>(`/bulk-imports/${importId}/results`),
+  create: (file: File, importType: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('importType', importType);
+    return api.post<ApiResponse<unknown>>('/bulk-imports', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  process: (importId: string) =>
+    api.post<ApiResponse<unknown>>(`/bulk-imports/${importId}/process`),
+  cancel: (importId: string) =>
+    api.delete<ApiResponse<void>>(`/bulk-imports/${importId}`),
+};
+
+// Invitations API
+export const invitationsApi = {
+  getAll: (params?: { page?: number; limit?: number; status?: string }) =>
+    api.get<ApiResponse<{ invitations: unknown[]; total: number }>>('/invitations', { params }),
+  getStats: () => api.get<ApiResponse<unknown>>('/invitations/stats'),
+  create: (data: { email: string; name?: string; userType: 'Alumni' | 'Student'; expiresIn?: number }) =>
+    api.post<ApiResponse<unknown>>('/invitations', data),
+  createBulk: (invitations: { email: string; name?: string; userType: 'Alumni' | 'Student' }[]) =>
+    api.post<ApiResponse<{ created: number; failed: unknown[] }>>('/invitations/bulk', { invitations }),
+  resend: (invitationId: string) =>
+    api.post<ApiResponse<unknown>>(`/invitations/${invitationId}/resend`),
+  cancel: (invitationId: string) =>
+    api.delete<ApiResponse<void>>(`/invitations/${invitationId}`),
+  validateToken: (token: string) =>
+    api.get<ApiResponse<unknown>>(`/invitations/validate/${token}`),
+  acceptInvitation: (token: string, data: { password: string; name?: string }) =>
+    api.post<ApiResponse<unknown>>(`/invitations/accept/${token}`, data),
+};
+
+// KYC API
+export const kycApi = {
+  getMyKYC: () => api.get<ApiResponse<unknown>>('/kyc/me'),
+  getById: (kycId: string) => api.get<ApiResponse<unknown>>(`/kyc/${kycId}`),
+  submit: (data: FormData) =>
+    api.post<ApiResponse<unknown>>('/kyc', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  resubmit: (kycId: string, data: FormData) =>
+    api.put<ApiResponse<unknown>>(`/kyc/${kycId}/resubmit`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  addDocument: (kycId: string, document: File) => {
+    const formData = new FormData();
+    formData.append('document', document);
+    return api.post<ApiResponse<unknown>>(`/kyc/${kycId}/documents`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getPendingReviews: () => api.get<ApiResponse<unknown[]>>('/kyc/admin/pending'),
+  getStats: () => api.get<ApiResponse<unknown>>('/kyc/admin/stats'),
+  startReview: (kycId: string) => api.post<ApiResponse<unknown>>(`/kyc/${kycId}/review/start`),
+  approve: (kycId: string, notes?: string) =>
+    api.post<ApiResponse<unknown>>(`/kyc/${kycId}/approve`, { notes }),
+  reject: (kycId: string, reason: string) =>
+    api.post<ApiResponse<unknown>>(`/kyc/${kycId}/reject`, { reason }),
 };
 
 // Newsletters API
