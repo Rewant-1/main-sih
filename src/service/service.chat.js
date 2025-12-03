@@ -12,7 +12,9 @@ const createChat = async (chatData) => {
 
 const getChats = async () => {
   try {
-    const chats = await Chat.find().populate("users").populate("lastMessage");
+    const chats = await Chat.find()
+      .populate({ path: "alumniId", populate: { path: "userId", select: "name email" } })
+      .populate({ path: "studentId", populate: { path: "userId", select: "name email" } });
     return chats;
   } catch (error) {
     throw error;
@@ -21,7 +23,36 @@ const getChats = async () => {
 
 const getChatById = async (chatId) => {
   try {
-    const chat = await Chat.findById(chatId).populate("users").populate("lastMessage");
+    const chat = await Chat.findById(chatId)
+      .populate({ path: "alumniId", populate: { path: "userId", select: "name email" } })
+      .populate({ path: "studentId", populate: { path: "userId", select: "name email" } });
+    return chat;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const getChatsByUser = async (userId, userType) => {
+  try {
+    const query = userType === 'Alumni' 
+      ? { alumniId: userId } 
+      : { studentId: userId };
+    const chats = await Chat.find(query)
+      .populate({ path: "alumniId", populate: { path: "userId", select: "name email" } })
+      .populate({ path: "studentId", populate: { path: "userId", select: "name email" } });
+    return chats;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const addMessage = async (chatId, messageData) => {
+  try {
+    const chat = await Chat.findByIdAndUpdate(
+      chatId,
+      { $push: { messages: messageData } },
+      { new: true }
+    );
     return chat;
   } catch (error) {
     throw error;
@@ -52,6 +83,8 @@ module.exports = {
   createChat,
   getChats,
   getChatById,
+  getChatsByUser,
+  addMessage,
   updateChat,
   deleteChat,
 };

@@ -6,6 +6,6 @@ const { authenticateToken, checkRole } = require("../middleware/middleware.auth.
 router.post("/send-request", authenticateToken, checkRole("Student"), ConnectionController.sendRequest);
 router.post("/accept-request", authenticateToken, checkRole("Alumni"), ConnectionController.acceptRequest);
 router.post("/reject-request", authenticateToken, checkRole("Alumni"), ConnectionController.rejectRequest);
-router.get("/connections", authenticateToken, ConnectionController.getConnections);
+router.get("/", authenticateToken, ConnectionController.getConnections);
 
 module.exports = router;

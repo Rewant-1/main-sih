@@ -15,6 +15,9 @@ import {
   Bell,
   Search,
   GraduationCap,
+  Award,
+  Target,
+  ClipboardList,
 } from "lucide-react";
 
 import {
@@ -72,6 +75,24 @@ const navigationItems = [
   },
 ];
 
+const engagementItems = [
+  {
+    title: "Success Stories",
+    href: "/success-stories",
+    icon: Award,
+  },
+  {
+    title: "Campaigns",
+    href: "/campaigns",
+    icon: Target,
+  },
+  {
+    title: "Surveys",
+    href: "/surveys",
+    icon: ClipboardList,
+  },
+];
+
 const profileItems = [
   {
     title: "My Profile",
@@ -105,6 +126,29 @@ function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="my-2" />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Engagement</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {engagementItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

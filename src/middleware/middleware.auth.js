@@ -38,4 +38,35 @@ const checkRole = (role) => {
     };
 };
 
-module.exports = { internalAuth, authenticateToken, checkRole };
+// Alias for authenticateToken - used by various routes
+const protect = authenticateToken;
+
+// Alias for authMiddleware - used by campaign, survey, successStory routes
+const authMiddleware = authenticateToken;
+
+// authorize: checks if user has one of the allowed roles
+const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ message: "Not authenticated" });
+        }
+        // Normalize role comparison (handle case differences)
+        const userRole = req.user.userType?.toLowerCase();
+        const allowedRoles = roles.map(r => r.toLowerCase());
+        
+        if (allowedRoles.includes(userRole)) {
+            next();
+        } else {
+            res.status(403).json({ message: "Forbidden: Insufficient rights" });
+        }
+    };
+};
+
+module.exports = { 
+    internalAuth, 
+    authenticateToken, 
+    checkRole,
+    protect,
+    authorize,
+    authMiddleware
+};

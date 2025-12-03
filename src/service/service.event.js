@@ -12,7 +12,10 @@ const createEvent = async (eventData) => {
 
 const getEvents = async () => {
   try {
-    const events = await Event.find().populate("createdBy").populate("registeredUsers");
+    const events = await Event.find()
+      .populate("createdBy", "name email")
+      .populate("registeredUsers", "name email")
+      .sort({ date: 1 });
     return events;
   } catch (error) {
     throw error;
@@ -21,7 +24,9 @@ const getEvents = async () => {
 
 const getEventById = async (eventId) => {
   try {
-    const event = await Event.findById(eventId).populate("createdBy").populate("registeredUsers");
+    const event = await Event.findById(eventId)
+      .populate("createdBy", "name email")
+      .populate("registeredUsers", "name email");
     return event;
   } catch (error) {
     throw error;
@@ -48,10 +53,34 @@ const deleteEvent = async (eventId) => {
   }
 };
 
+const registerForEvent = async (eventId, userId) => {
+  try {
+    const event = await Event.findById(eventId);
+    if (!event) {
+      return null;
+    }
+    
+    // Check if already registered
+    if (event.registeredUsers.includes(userId)) {
+      throw new Error("Already registered for this event");
+    }
+    
+    event.registeredUsers.push(userId);
+    await event.save();
+    
+    return await Event.findById(eventId)
+      .populate("createdBy", "name email")
+      .populate("registeredUsers", "name email");
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   createEvent,
   getEvents,
   getEventById,
   updateEvent,
   deleteEvent,
+  registerForEvent,
 };

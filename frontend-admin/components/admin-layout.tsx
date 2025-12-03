@@ -15,6 +15,11 @@ import {
   LogOut,
   Shield,
   ChevronDown,
+  Target,
+  ClipboardList,
+  Award,
+  Mail,
+  BarChart3,
 } from "lucide-react";
 
 import {
@@ -45,6 +50,11 @@ const navigationItems = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Analytics",
+    href: "/analytics",
+    icon: BarChart3,
   },
   {
     title: "Alumni Management",
@@ -78,6 +88,29 @@ const navigationItems = [
   },
 ];
 
+const engagementItems = [
+  {
+    title: "Campaigns",
+    href: "/campaigns",
+    icon: Target,
+  },
+  {
+    title: "Surveys",
+    href: "/surveys",
+    icon: ClipboardList,
+  },
+  {
+    title: "Success Stories",
+    href: "/success-stories",
+    icon: Award,
+  },
+  {
+    title: "Newsletters",
+    href: "/newsletters",
+    icon: Mail,
+  },
+];
+
 const settingsItems = [
   {
     title: "Settings",
@@ -108,6 +141,29 @@ function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="my-2" />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Engagement</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {engagementItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
                     asChild

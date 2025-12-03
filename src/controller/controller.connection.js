@@ -119,8 +119,10 @@ const getConnections = async (req, res) => {
             userType === "Student"
                 ? { studentId: userId }
                 : { alumniId: userId };
-        const connections = await ConnectionModel.find(filter);
-        res.status(200).json(connections);
+        const connections = await ConnectionModel.find(filter)
+            .populate({ path: 'studentId', populate: { path: 'userId', select: 'name email' } })
+            .populate({ path: 'alumniId', populate: { path: 'userId', select: 'name email' } });
+        res.status(200).json({ success: true, data: connections });
     } catch (error) {
         console.error("Error getting connections:", error);
         res.status(500).json({

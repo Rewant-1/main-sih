@@ -235,3 +235,113 @@ export interface AuthResponse {
   user: User;
   profile?: Alumni | Student;
 }
+
+// Success Story Types
+export interface SuccessStory {
+  _id: string;
+  title: string;
+  content: string;
+  excerpt?: string;
+  category: string;
+  alumniId?: string | Alumni;
+  alumniName?: string;
+  alumniDesignation?: string;
+  alumniCompany?: string;
+  graduationYear?: number;
+  coverImage?: string;
+  images?: string[];
+  tags?: string[];
+  status: 'draft' | 'pending' | 'published' | 'archived';
+  isFeatured?: boolean;
+  views?: number;
+  likes?: string[];
+  shares?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSuccessStoryData {
+  title: string;
+  content: string;
+  excerpt?: string;
+  category: string;
+  coverImage?: string;
+  tags?: string[];
+}
+
+// Survey Types
+export interface SurveyQuestion {
+  id: string;
+  type: 'short_text' | 'long_text' | 'mcq' | 'checkbox' | 'rating' | 'date';
+  question: string;
+  options?: string[];
+  required?: boolean;
+  maxRating?: number;
+}
+
+export interface SurveyResponse {
+  respondentId: string;
+  respondentType: 'alumni' | 'student';
+  answers: {
+    questionId: string;
+    answer: string | string[] | number;
+  }[];
+  submittedAt: string;
+}
+
+export interface Survey {
+  _id: string;
+  title: string;
+  description?: string;
+  questions: SurveyQuestion[];
+  targetAudience: 'all' | 'alumni' | 'students';
+  isActive: boolean;
+  expiresAt?: string;
+  responses?: SurveyResponse[];
+  createdBy?: string;
+  createdAt: string;
+}
+
+// Campaign Types
+export interface CampaignMilestone {
+  title: string;
+  targetAmount: number;
+  description?: string;
+  reached: boolean;
+  reachedAt?: string;
+}
+
+export interface CampaignDonation {
+  donorId: string;
+  donorType: 'alumni' | 'student' | 'other';
+  amount: number;
+  donorName?: string;
+  message?: string;
+  isAnonymous: boolean;
+  donatedAt: string;
+}
+
+export interface Campaign {
+  _id: string;
+  title: string;
+  description: string;
+  goalAmount: number;
+  currentAmount: number;
+  startDate: string;
+  endDate: string;
+  category: string;
+  coverImage?: string;
+  images?: string[];
+  milestones?: CampaignMilestone[];
+  donations?: CampaignDonation[];
+  status: 'draft' | 'active' | 'completed' | 'cancelled';
+  createdBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDonationData {
+  amount: number;
+  message?: string;
+  isAnonymous?: boolean;
+}

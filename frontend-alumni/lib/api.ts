@@ -16,6 +16,11 @@ import type {
   CreatePostData,
   AuthResponse,
   ApiResponse,
+  SuccessStory,
+  CreateSuccessStoryData,
+  Survey,
+  Campaign,
+  CreateDonationData,
 } from './types';
 
 // Auth API
@@ -131,4 +136,44 @@ export const messagesApi = {
   update: (id: string, data: { text: string }) =>
     api.put<ApiResponse<unknown>>(`/messages/${id}`, data),
   delete: (id: string) => api.delete<ApiResponse<void>>(`/messages/${id}`),
+};
+
+// Success Stories API
+export const successStoriesApi = {
+  getAll: (params?: Record<string, string | boolean>) =>
+    api.get<ApiResponse<{ stories: SuccessStory[]; total: number }>>('/success-stories', { params }),
+  getById: (id: string) =>
+    api.get<ApiResponse<SuccessStory>>(`/success-stories/${id}`),
+  getFeatured: () =>
+    api.get<ApiResponse<SuccessStory[]>>('/success-stories/featured'),
+  create: (data: CreateSuccessStoryData) =>
+    api.post<ApiResponse<SuccessStory>>('/success-stories', data),
+  like: (id: string) =>
+    api.post<ApiResponse<SuccessStory>>(`/success-stories/${id}/like`),
+  share: (id: string) =>
+    api.post<ApiResponse<SuccessStory>>(`/success-stories/${id}/share`),
+};
+
+// Surveys API
+export const surveysApi = {
+  getAll: (params?: Record<string, string | boolean>) =>
+    api.get<ApiResponse<{ surveys: Survey[]; total: number }>>('/surveys', { params }),
+  getById: (id: string) =>
+    api.get<ApiResponse<Survey>>(`/surveys/${id}`),
+  getActive: () =>
+    api.get<ApiResponse<Survey[]>>('/surveys/active'),
+  submitResponse: (id: string, answers: { questionId: string; answer: string | string[] | number }[]) =>
+    api.post<ApiResponse<Survey>>(`/surveys/${id}/respond`, { answers }),
+};
+
+// Campaigns API
+export const campaignsApi = {
+  getAll: (params?: Record<string, string | boolean>) =>
+    api.get<ApiResponse<{ campaigns: Campaign[]; total: number }>>('/campaigns', { params }),
+  getById: (id: string) =>
+    api.get<ApiResponse<Campaign>>(`/campaigns/${id}`),
+  getActive: () =>
+    api.get<ApiResponse<Campaign[]>>('/campaigns/active'),
+  donate: (id: string, data: CreateDonationData) =>
+    api.post<ApiResponse<Campaign>>(`/campaigns/${id}/donate`, data),
 };

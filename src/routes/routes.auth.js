@@ -11,8 +11,9 @@ router.post(
     internalAuth,
     AuthController.verifyAlumni
 );
-router.get("/test",()=>{
-    console.log("auth working.")
-})
+router.get("/test", (req, res) => {
+    console.log("auth working.");
+    res.json({ success: true, message: "Auth routes working" });
+});
 
 module.exports = router;

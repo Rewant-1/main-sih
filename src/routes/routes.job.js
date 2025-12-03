@@ -1,13 +1,19 @@
 const express = require("express");
 const JobController = require("../controller/controller.job.js");
+const { authenticateToken, checkRole } = require("../middleware/middleware.auth.js");
 
 const router = express.Router();
 
-router.post("/", JobController.createJob);
+// Public routes
 router.get("/", JobController.getJobs);
 router.get("/:id", JobController.getJobById);
-router.put("/:id", JobController.updateJob);
-router.delete("/:id", JobController.deleteJob);
-router.post("/:id/apply", JobController.applyToJob);
+
+// Protected routes
+router.post("/", authenticateToken, checkRole("Alumni"), JobController.createJob);
+router.put("/:id", authenticateToken, JobController.updateJob);
+router.delete("/:id", authenticateToken, JobController.deleteJob);
+router.post("/:id/apply", authenticateToken, checkRole("Student"), JobController.applyToJob);
+router.patch("/:id/application-status", authenticateToken, JobController.updateApplicationStatus);
+router.get("/my/posted", authenticateToken, checkRole("Alumni"), JobController.getMyJobs);
 
 module.exports = router;

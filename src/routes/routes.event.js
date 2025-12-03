@@ -1,12 +1,17 @@
 const express = require("express");
 const EventController = require("../controller/controller.event.js");
+const { authenticateToken } = require("../middleware/middleware.auth.js");
 
 const router = express.Router();
 
-router.post("/", EventController.createEvent);
+// Public routes
 router.get("/", EventController.getEvents);
 router.get("/:id", EventController.getEventById);
-router.put("/:id", EventController.updateEvent);
-router.delete("/:id", EventController.deleteEvent);
+
+// Protected routes
+router.post("/", authenticateToken, EventController.createEvent);
+router.put("/:id", authenticateToken, EventController.updateEvent);
+router.delete("/:id", authenticateToken, EventController.deleteEvent);
+router.post("/:id/register", authenticateToken, EventController.registerForEvent);
 
 module.exports = router;

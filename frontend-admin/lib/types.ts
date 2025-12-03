@@ -177,3 +177,226 @@ export interface AuthResponse {
   user: User;
   profile?: Alumni | Student;
 }
+
+// Campaign Types
+export interface Milestone {
+  _id?: string;
+  title: string;
+  description?: string;
+  targetAmount?: number;
+  targetDate?: string;
+  isCompleted: boolean;
+  completedAt?: string;
+}
+
+export interface Donation {
+  _id?: string;
+  donor: string | User;
+  amount: number;
+  type: 'money' | 'skills' | 'resources';
+  message?: string;
+  isAnonymous: boolean;
+  transactionId?: string;
+  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
+  createdAt: string;
+}
+
+export interface Campaign {
+  _id: string;
+  title: string;
+  tagline?: string;
+  description: string;
+  category: 'infrastructure' | 'scholarship' | 'research' | 'sustainability' | 'sports' | 'general' | 'other';
+  subcategory?: string;
+  targetAmount: number;
+  raisedAmount: number;
+  minimumDonation: number;
+  currency: string;
+  startDate: string;
+  endDate: string;
+  milestones: Milestone[];
+  donations: Donation[];
+  supportersCount: number;
+  beneficiaries?: string;
+  expectedOutcomes: string[];
+  impactDescription?: string;
+  coverImage?: string;
+  images: string[];
+  videoUrl?: string;
+  organizer: string | User;
+  teamMembers: { user: string | User; role: string }[];
+  status: 'draft' | 'pending' | 'active' | 'completed' | 'cancelled';
+  isVerified: boolean;
+  views: number;
+  shares: number;
+  progress?: number;
+  daysRemaining?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCampaignData {
+  title: string;
+  tagline?: string;
+  description: string;
+  category: string;
+  targetAmount: number;
+  startDate: string;
+  endDate: string;
+  beneficiaries?: string;
+  expectedOutcomes?: string[];
+  coverImage?: string;
+}
+
+// Survey Types
+export interface SurveyQuestion {
+  _id?: string;
+  text: string;
+  type: 'short' | 'long' | 'multiple_choice' | 'single_choice' | 'rating' | 'date';
+  options?: string[];
+  isRequired: boolean;
+  order: number;
+}
+
+export interface SurveyResponse {
+  _id?: string;
+  respondent?: string | User;
+  answers: { questionId: string; answer: unknown }[];
+  completedAt: string;
+  timeSpent?: number;
+  device?: string;
+}
+
+export interface Survey {
+  _id: string;
+  title: string;
+  description?: string;
+  coverImage?: string;
+  questions: SurveyQuestion[];
+  responses: SurveyResponse[];
+  targetAudience: 'all' | 'alumni' | 'students' | 'specific_batch' | 'specific_department';
+  targetBatch?: number;
+  targetDepartment?: string;
+  startDate?: string;
+  endDate?: string;
+  isScheduled: boolean;
+  theme: { primaryColor: string; backgroundColor: string };
+  isAnonymous: boolean;
+  allowMultipleResponses: boolean;
+  showResults: boolean;
+  status: 'draft' | 'active' | 'closed' | 'archived';
+  createdBy: string | User;
+  responseCount?: number;
+  completionRate?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSurveyData {
+  title: string;
+  description?: string;
+  questions: Omit<SurveyQuestion, '_id'>[];
+  targetAudience?: string;
+  startDate?: string;
+  endDate?: string;
+  isAnonymous?: boolean;
+}
+
+// Success Story Types
+export interface SuccessStory {
+  _id: string;
+  title: string;
+  content: string;
+  excerpt?: string;
+  category: 'academic_excellence' | 'career_growth' | 'entrepreneurship' | 'research_innovation' | 'social_impact' | 'other';
+  alumni?: string | Alumni;
+  alumniName?: string;
+  alumniDesignation?: string;
+  alumniCompany?: string;
+  graduationYear?: number;
+  coverImage?: string;
+  images: string[];
+  videoUrl?: string;
+  tags: string[];
+  views: number;
+  likes: string[] | User[];
+  shares: number;
+  status: 'draft' | 'pending' | 'published' | 'archived';
+  isFeatured: boolean;
+  isVerified: boolean;
+  createdBy: string | User;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSuccessStoryData {
+  title: string;
+  content: string;
+  excerpt?: string;
+  category: string;
+  alumniName?: string;
+  alumniDesignation?: string;
+  alumniCompany?: string;
+  graduationYear?: number;
+  coverImage?: string;
+  tags?: string[];
+}
+
+// Analytics Types
+export interface DashboardAnalytics {
+  totalAlumni: number;
+  verifiedAlumni: number;
+  totalStudents: number;
+  totalJobs: number;
+  totalEvents: number;
+  totalCampaigns: number;
+  totalDonations: number;
+  employmentRate: number;
+  departmentDistribution: { _id: string; count: number }[];
+  graduationYearTrends: { _id: number; count: number }[];
+  recentActivity: { type: string; count: number; date: string }[];
+}
+
+// Newsletter Types
+export interface NewsletterRecipient {
+  email: string;
+  name?: string;
+  opened: boolean;
+  openedAt?: string;
+  clicked: boolean;
+  clickedAt?: string;
+  unsubscribed: boolean;
+}
+
+export interface Newsletter {
+  _id: string;
+  title: string;
+  subject: string;
+  content: string;
+  preheader?: string;
+  coverImage?: string;
+  targetAudience: 'all' | 'alumni' | 'students' | 'specific_batch';
+  targetBatch?: number;
+  recipients: NewsletterRecipient[];
+  status: 'draft' | 'scheduled' | 'sent' | 'cancelled';
+  scheduledAt?: string;
+  sentAt?: string;
+  openRate?: number;
+  clickRate?: number;
+  unsubscribeRate?: number;
+  createdBy: string | User;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateNewsletterData {
+  title: string;
+  subject: string;
+  content: string;
+  preheader?: string;
+  coverImage?: string;
+  targetAudience?: string;
+  targetBatch?: number;
+  scheduledAt?: string;
+}

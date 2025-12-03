@@ -1,14 +1,18 @@
 const express = require("express");
 const PostController = require("../controller/controller.post.js");
+const { authenticateToken } = require("../middleware/middleware.auth.js");
 
 const router = express.Router();
 
-router.post("/", PostController.createPost);
+// Public routes
 router.get("/", PostController.getPosts);
 router.get("/:id", PostController.getPostById);
-router.put("/:id", PostController.updatePost);
-router.delete("/:id", PostController.deletePost);
-router.post("/:id/like", PostController.likePost);
-router.post("/:id/comment", PostController.commentOnPost);
+
+// Protected routes
+router.post("/", authenticateToken, PostController.createPost);
+router.put("/:id", authenticateToken, PostController.updatePost);
+router.delete("/:id", authenticateToken, PostController.deletePost);
+router.post("/:id/like", authenticateToken, PostController.likePost);
+router.post("/:id/comment", authenticateToken, PostController.commentOnPost);
 
 module.exports = router;
