@@ -1,0 +1,198 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
+  Briefcase,
+  Calendar,
+  FileText,
+  MessageSquare,
+  Settings,
+  LogOut,
+  Shield,
+  ChevronDown,
+} from "lucide-react";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+
+const navigationItems = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Alumni Management",
+    href: "/alumni",
+    icon: GraduationCap,
+  },
+  {
+    title: "Students",
+    href: "/students",
+    icon: Users,
+  },
+  {
+    title: "Jobs",
+    href: "/jobs",
+    icon: Briefcase,
+  },
+  {
+    title: "Events",
+    href: "/events",
+    icon: Calendar,
+  },
+  {
+    title: "Posts",
+    href: "/posts",
+    icon: FileText,
+  },
+  {
+    title: "Messages",
+    href: "/messages",
+    icon: MessageSquare,
+  },
+];
+
+const settingsItems = [
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: Settings,
+  },
+];
+
+function AppSidebar() {
+  const pathname = usePathname();
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="border-b border-sidebar-border">
+        <div className="flex items-center gap-2 px-2 py-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Shield className="h-6 w-6" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-lg font-bold">AlumniConnect</span>
+            <span className="text-xs text-muted-foreground">Admin Portal</span>
+          </div>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Main Menu</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <Separator className="my-2" />
+
+        <SidebarGroup>
+          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {settingsItems.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={pathname === item.href}
+                  >
+                    <Link href={item.href}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex w-full items-center gap-2 rounded-lg p-2 hover:bg-sidebar-accent">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback>AD</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-1 flex-col text-left text-sm">
+                <span className="font-medium">Admin User</span>
+                <span className="text-xs text-muted-foreground">
+                  admin@alumni.com
+                </span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem>
+              <Settings className="mr-2 h-4 w-4" />
+              Account Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+
+export function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <AppSidebar />
+        <main className="flex-1">
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4">
+            <SidebarTrigger />
+            <div className="flex-1" />
+          </header>
+          <div className="p-6">{children}</div>
+        </main>
+      </div>
+    </SidebarProvider>
+  );
+}
