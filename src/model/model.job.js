@@ -1,21 +1,26 @@
+const { application } = require("express");
 const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  company: { type: String, required: true },
-  location: { type: String },
-  type: { type: String, enum: ["full-time", "internship"] },
+    title: { type: String, required: true },
+    company: { type: String, required: true },
+    location: { type: String },
+    type: { type: String, enum: ["full-time", "internship"], required: true },
+    isOpen: {
+        type: Boolean,
+        default: true,
+        required: true,
+    },
+    description: { type: String },
+    skillsRequired: [{ type: String }],
 
-  description: { type: String },
-  skillsRequired: [{ type: String }],
+    postedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Alumni",
+        required: true,
+    },
 
-  postedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Alumni",
-    required: true 
-  },
-
-  createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model("Job", jobSchema);
