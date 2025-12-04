@@ -3,7 +3,8 @@ export interface User {
   _id: string;
   name: string;
   email: string;
-  userType: 'Student' | 'Alumni';
+  // Backend may return Admin as well; keep union open for future roles
+  userType: 'Student' | 'Alumni' | 'Admin' | string;
   profileDetails?: string;
   createdAt: string;
 }
@@ -173,9 +174,16 @@ export interface PaginatedResponse<T> {
 // Auth Response
 export interface AuthResponse {
   success: boolean;
-  token: string;
-  user: User;
+  // Newer API returns data.token; older code may return token at root
+  token?: string;
+  user?: User;
   profile?: Alumni | Student;
+  data?: {
+    token?: string;
+    user?: User;
+    profile?: Alumni | Student;
+  };
+  message?: string;
 }
 
 // Campaign Types

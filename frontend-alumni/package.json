@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack --port 3001",
+    "dev": "set NEXT_CACHE_DIR=.next/cache-alumni&& set NEXT_TURBOPACK=1&& next dev --turbo --port 3001",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

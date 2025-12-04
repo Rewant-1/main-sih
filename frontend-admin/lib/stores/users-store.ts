@@ -35,6 +35,7 @@ export const useUsersStore = create<UsersState>()((set, get) => ({
       set({ users: response.data.data || [], isLoading: false });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
+      console.error('fetchUsers error', error);
       set({
         error: err.response?.data?.message || 'Failed to fetch users',
         isLoading: false,
@@ -49,6 +50,7 @@ export const useUsersStore = create<UsersState>()((set, get) => ({
       set({ alumni: response.data.data || [], isLoading: false });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
+      console.error('fetchAlumni error', error);
       set({
         error: err.response?.data?.message || 'Failed to fetch alumni',
         isLoading: false,
@@ -63,6 +65,7 @@ export const useUsersStore = create<UsersState>()((set, get) => ({
       set({ students: response.data.data || [], isLoading: false });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
+      console.error('fetchStudents error', error);
       set({
         error: err.response?.data?.message || 'Failed to fetch students',
         isLoading: false,

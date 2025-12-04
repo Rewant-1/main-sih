@@ -25,9 +25,17 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+      // Log for debugging and send more context in development
+      try {
+        console.error('API 401 Unauthorized', { url: error.config?.url, status: error.response?.status, data: error.response?.data });
+      } catch (err) {}
+
+      // Only auto-redirect in production; in dev, let the caller handle the error so we can inspect the failing request
+      if (process.env.NODE_ENV === 'production') {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

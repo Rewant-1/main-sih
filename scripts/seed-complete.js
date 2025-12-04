@@ -38,7 +38,9 @@ const NewsletterModel = require('../src/model/model.newsletter');
 const ConnectionModel = require('../src/model/model.connections');
 const ChatModel = require('../src/model/model.chat');
 
-const MONGO_URI = process.env.MONGODB_URI;
+const config = require('../config');
+const MONGO_URI = config.MONGO_URI || process.env.MONGODB_URI;
+const DB_NAME = config.DB_NAME || process.env.MONGO_DB_NAME || process.env.DB_NAME;
 
 // Simple CLI args parsing without adding new dependencies
 const rawArgs = process.argv.slice(2);
@@ -882,6 +884,29 @@ async function ensureDocument(Model, query, createData, updateIfExists = false) 
   return doc;
 }
 
+// Helper: get an alumni user (fallback to DB if created list doesn't have one)
+async function getAlumniUser(alumniList, idx) {
+  if (alumniList && alumniList[idx] && alumniList[idx].user) return alumniList[idx].user;
+  const anyAlumniUser = await UserModel.findOne({ userType: 'Alumni' }).lean();
+  return anyAlumniUser || null;
+}
+
+async function getStudentUser(studentsList, idx) {
+  if (studentsList && studentsList[idx] && studentsList[idx].user) return studentsList[idx].user;
+  const anyStudentUser = await UserModel.findOne({ userType: 'Student' }).lean();
+  return anyStudentUser || null;
+}
+
+async function getAlumniProfileForUserId(userId) {
+  if (!userId) return null;
+  return await AlumniModel.findOne({ userId });
+}
+
+async function getStudentProfileForUserId(userId) {
+  if (!userId) return null;
+  return await StudentModel.findOne({ userId });
+}
+
 async function seedUniversityAndCollege() {
   console.log('🏛️  Seeding University and College...');
   
@@ -1109,10 +1134,20 @@ async function seedJobs(alumni) {
   for (let i = 0; i < jobsData.length; i++) {
     const jobData = jobsData[i];
     // Assign jobs to different alumni
-    const posterIndex = i % alumni.length;
-    const poster = alumni[posterIndex];
+    const posterIndex = alumni && alumni.length ? i % alumni.length : i;
+    // choose existing poster from created list, or fallback to a DB alumni user
+    const poster = (alumni && alumni[posterIndex]) ? alumni[posterIndex] : null;
+    let posterUser = poster ? poster.user : null;
+    if (!posterUser) {
+      // try to fetch an existing alumni user from the DB
+      posterUser = await UserModel.findOne({ userType: 'Alumni' }).lean();
+    }
 
-    const query = { title: jobData.title, company: jobData.company, postedBy: poster.user._id };
+    if (!posterUser) {
+      console.log(`   No alumni user available; skipping Job: ${jobData.title} at ${jobData.company}`);
+      continue;
+    }
+    const query = { title: jobData.title, company: jobData.company, postedBy: posterUser._id };
     const existing = await JobModel.findOne(query);
     if (existing) {
       console.log(`   Skipping existing Job: ${jobData.title} at ${jobData.company}`);
@@ -1123,7 +1158,7 @@ async function seedJobs(alumni) {
       console.log(`   Dry-run: Would create Job: ${jobData.title} at ${jobData.company}`);
       continue;
     }
-    const job = await JobModel.create({ ...jobData, postedBy: poster.user._id });
+    const job = await JobModel.create({ ...jobData, postedBy: posterUser._id });
     createdJobs.push(job);
     console.log(`   Created Job: ${jobData.title} at ${jobData.company}`);
   }
@@ -1138,10 +1173,14 @@ async function seedEvents(alumni) {
   
   for (let i = 0; i < eventsData.length; i++) {
     const eventData = eventsData[i];
-    const creatorIndex = i % alumni.length;
-    const creator = alumni[creatorIndex];
+    const creatorIndex = alumni && alumni.length ? i % alumni.length : i;
+    const creatorUser = await getAlumniUser(alumni, creatorIndex);
 
-    const query = { title: eventData.title, date: eventData.date, createdBy: creator.user._id };
+    if (!creatorUser) {
+      console.log(`   No alumni user available; skipping Event: ${eventData.title}`);
+      continue;
+    }
+    const query = { title: eventData.title, date: eventData.date, createdBy: creatorUser._id };
     const existing = await EventModel.findOne(query);
     if (existing) {
       console.log(`   Skipping existing Event: ${eventData.title}`);
@@ -1152,7 +1191,7 @@ async function seedEvents(alumni) {
       console.log(`   Dry-run: Would create Event: ${eventData.title}`);
       continue;
     }
-    const event = await EventModel.create({ ...eventData, createdBy: creator.user._id });
+    const event = await EventModel.create({ ...eventData, createdBy: creatorUser._id });
     createdEvents.push(event);
     console.log(`   Created Event: ${eventData.title}`);
   }
@@ -1166,26 +1205,30 @@ async function seedPosts(alumni) {
   const createdPosts = [];
   
   for (const postData of postsData) {
-    const author = alumni[postData.authorIndex];
-    const query = { content: postData.content, postedBy: author.user._id };
+    const authorUser = await getAlumniUser(alumni, postData.authorIndex);
+    if (!authorUser) {
+      console.log(`   No alumni user available; skipping Post by: index ${postData.authorIndex}`);
+      continue;
+    }
+    const query = { content: postData.content, postedBy: authorUser._id };
     const existing = await PostModel.findOne(query);
     if (existing) {
-      console.log(`   Skipping existing Post by: ${author.name}`);
+      console.log(`   Skipping existing Post by: ${authorUser.name}`);
       createdPosts.push(existing);
       continue;
     }
     if (!isWriteEnabled) {
-      console.log(`   Dry-run: Would create Post by: ${author.name}`);
+      console.log(`   Dry-run: Would create Post by: ${authorUser.name}`);
       continue;
     }
     const post = await PostModel.create({
       content: postData.content,
-      postedBy: author.user._id,
+      postedBy: authorUser._id,
       likes: [],
       comments: []
     });
     createdPosts.push(post);
-    console.log(`   Created Post by: ${author.name}`);
+    console.log(`   Created Post by: ${authorUser.name}`);
   }
   
   return createdPosts;
@@ -1198,10 +1241,14 @@ async function seedCampaigns(alumni, college) {
   
   for (let i = 0; i < campaignsData.length; i++) {
     const campaignData = campaignsData[i];
-    const organizerIndex = i % alumni.length;
-    const organizer = alumni[organizerIndex];
+    const organizerIndex = alumni && alumni.length ? i % alumni.length : i;
+    const organizerUser = await getAlumniUser(alumni, organizerIndex);
     
-    const query = { title: campaignData.title, organizer: organizer.user._id };
+    if (!organizerUser) {
+      console.log(`   No alumni user available; skipping Campaign: ${campaignData.title}`);
+      continue;
+    }
+    const query = { title: campaignData.title, organizer: organizerUser._id };
     const existing = await CampaignModel.findOne(query);
     if (existing) {
       console.log(`   Skipping existing Campaign: ${campaignData.title}`);
@@ -1211,9 +1258,11 @@ async function seedCampaigns(alumni, college) {
     // Add some sample donations
     const donations = [];
     for (let j = 0; j < 5; j++) {
-      const donorIndex = (i + j) % alumni.length;
+      const donorIndex = alumni && alumni.length ? (i + j) % alumni.length : (i + j);
+      const donorUser = await getAlumniUser(alumni, donorIndex);
+      if (!donorUser) continue;
       donations.push({
-        donor: alumni[donorIndex].user._id,
+        donor: donorUser._id,
         amount: Math.floor(Math.random() * 50000) + 10000,
         type: 'money',
         isAnonymous: Math.random() > 0.7,
@@ -1227,7 +1276,7 @@ async function seedCampaigns(alumni, college) {
     }
     const campaign = await CampaignModel.create({
       ...campaignData,
-      organizer: organizer.user._id,
+      organizer: organizerUser._id,
       college: college._id,
       donations: donations,
       supportersCount: donations.length,
@@ -1247,8 +1296,12 @@ async function seedSuccessStories(alumni, college) {
   const createdStories = [];
   
   for (const storyData of successStoriesData) {
-    const author = alumni[storyData.authorIndex];
-    const query = { title: storyData.title, createdBy: author.user._id };
+    const authorUser = await getAlumniUser(alumni, storyData.authorIndex);
+    if (!authorUser) {
+      console.log(`   No alumni user available; skipping Success Story: ${storyData.title}`);
+      continue;
+    }
+    const query = { title: storyData.title, createdBy: authorUser._id };
     const existing = await SuccessStoryModel.findOne(query);
     if (existing) {
       console.log(`   Skipping existing Success Story: ${storyData.title}`);
@@ -1259,21 +1312,22 @@ async function seedSuccessStories(alumni, college) {
       console.log(`   Dry-run: Would create Success Story: ${storyData.title}`);
       continue;
     }
+    const alumniProfile = await getAlumniProfileForUserId(authorUser._id);
     const story = await SuccessStoryModel.create({
       title: storyData.title,
       content: storyData.content,
       excerpt: storyData.content.substring(0, 200) + '...',
       category: storyData.category,
-      alumni: author.profile._id,
-      alumniName: author.name,
-      alumniDesignation: author.designation,
-      alumniCompany: author.company,
-      graduationYear: author.graduationYear,
+      alumni: alumniProfile ? alumniProfile._id : undefined,
+      alumniName: authorUser.name || undefined,
+      alumniDesignation: alumniProfile && alumniProfile.designation ? alumniProfile.designation : undefined,
+      alumniCompany: authorUser.company || undefined,
+      graduationYear: alumniProfile ? alumniProfile.graduationYear : undefined,
       tags: storyData.tags,
       status: 'published',
       isFeatured: true,
       isVerified: true,
-      createdBy: author.user._id,
+      createdBy: authorUser._id,
       college: college._id,
       publishedAt: new Date()
     });
@@ -1292,10 +1346,13 @@ async function seedSurveys(alumni, college) {
   
   for (let i = 0; i < surveysData.length; i++) {
     const surveyData = surveysData[i];
-    const creatorIndex = i % alumni.length;
-    const creator = alumni[creatorIndex];
-    
-    const query = { title: surveyData.title, createdBy: creator.user._id };
+    const creatorIndex = alumni && alumni.length ? i % alumni.length : i;
+    const creatorUser = await getAlumniUser(alumni, creatorIndex);
+    if (!creatorUser) {
+      console.log(`   No alumni user available; skipping Survey: ${surveyData.title}`);
+      continue;
+    }
+    const query = { title: surveyData.title, createdBy: creatorUser._id };
     const existing = await SurveyModel.findOne(query);
     if (existing) {
       console.log(`   Skipping existing Survey: ${surveyData.title}`);
@@ -1306,7 +1363,7 @@ async function seedSurveys(alumni, college) {
       console.log(`   Dry-run: Would create Survey: ${surveyData.title}`);
       continue;
     }
-    const survey = await SurveyModel.create({ ...surveyData, createdBy: creator.user._id, college: college._id });
+    const survey = await SurveyModel.create({ ...surveyData, createdBy: creatorUser._id, college: college._id });
     createdSurveys.push(survey);
     console.log(`   Created Survey: ${surveyData.title}`);
   }
@@ -1321,10 +1378,13 @@ async function seedNewsletters(alumni, college) {
   
   for (let i = 0; i < newslettersData.length; i++) {
     const newsletterData = newslettersData[i];
-    const creatorIndex = i % alumni.length;
-    const creator = alumni[creatorIndex];
-    
-    const query = { title: newsletterData.title, createdBy: creator.user._id };
+    const creatorIndex = alumni && alumni.length ? i % alumni.length : i;
+    const creatorUser = await getAlumniUser(alumni, creatorIndex);
+    if (!creatorUser) {
+      console.log(`   No alumni user available; skipping Newsletter: ${newsletterData.title}`);
+      continue;
+    }
+    const query = { title: newsletterData.title, createdBy: creatorUser._id };
     const existing = await NewsletterModel.findOne(query);
     if (existing) {
       console.log(`   Skipping existing Newsletter: ${newsletterData.title}`);
@@ -1335,7 +1395,7 @@ async function seedNewsletters(alumni, college) {
       console.log(`   Dry-run: Would create Newsletter: ${newsletterData.title}`);
       continue;
     }
-    const newsletter = await NewsletterModel.create({ ...newsletterData, createdBy: creator.user._id, college: college._id });
+    const newsletter = await NewsletterModel.create({ ...newsletterData, createdBy: creatorUser._id, college: college._id });
     createdNewsletters.push(newsletter);
     console.log(`   Created Newsletter: ${newsletterData.title}`);
   }
@@ -1352,16 +1412,36 @@ async function seedConnections(alumni, students) {
   for (let i = 0; i < students.length; i++) {
     const numConnections = Math.min(3, alumni.length);
     for (let j = 0; j < numConnections; j++) {
-      const alumniIndex = (i + j) % alumni.length;
-      const studentProfile = students[i].profile;
-      const alumniProfile = alumni[alumniIndex].profile;
+      const alumniIndex = alumni && alumni.length ? (i + j) % alumni.length : (i + j);
+      // Student profile may be missing in dry-run; fallback to DB
+      let studentProfile = students[i] && students[i].profile ? students[i].profile : null;
+      if (!studentProfile && students[i] && students[i].user) {
+        studentProfile = await getStudentProfileForUserId(students[i].user._id);
+      }
+      if (!studentProfile) {
+        // try to find any student profile in DB
+        const anyStudent = await StudentModel.findOne({});
+        studentProfile = anyStudent || null;
+      }
+      // Alumni profile fallback
+      let alumniProfile = (alumni && alumni[alumniIndex] && alumni[alumniIndex].profile) ? alumni[alumniIndex].profile : null;
+      if (!alumniProfile) {
+        const anyAlumniUser = await getAlumniUser(alumni, alumniIndex);
+        if (anyAlumniUser) {
+          alumniProfile = await getAlumniProfileForUserId(anyAlumniUser._id);
+        }
+      }
       const query = { studentId: studentProfile._id, alumniId: alumniProfile._id };
       const existing = await ConnectionModel.findOne(query);
       if (existing) {
         continue;
       }
       if (!isWriteEnabled) {
-        console.log(`   Dry-run: Would create connection between ${students[i].user.email} and ${alumni[alumniIndex].user.email}`);
+        const studentLogUser = students[i] && students[i].user ? students[i].user : null;
+        const alumniLogUser = (alumni && alumni[alumniIndex] && alumni[alumniIndex].user) ? alumni[alumniIndex].user : null;
+        const studentEmail = studentLogUser ? studentLogUser.email : (studentProfile && studentProfile.userId ? `student:${studentProfile.userId}` : 'unknown');
+        const alumniEmail = alumniLogUser ? alumniLogUser.email : (alumniProfile && alumniProfile.userId ? `alumni:${alumniProfile.userId}` : 'unknown');
+        console.log(`   Dry-run: Would create connection between ${studentEmail} and ${alumniEmail}`);
         continue;
       }
       const connection = await ConnectionModel.create({
@@ -1385,17 +1465,36 @@ async function seedChats(alumni, students) {
   // Create some sample chats
   for (let i = 0; i < Math.min(5, students.length); i++) {
     const alumniIndex = i % alumni.length;
-    const studentProfile = students[i].profile;
-    const alumniProfile = alumni[alumniIndex].profile;
+    let studentProfile = students[i] && students[i].profile ? students[i].profile : null;
+    if (!studentProfile && students[i] && students[i].user) {
+      studentProfile = await getStudentProfileForUserId(students[i].user._id);
+    }
+    if (!studentProfile) {
+      const anyStudent = await StudentModel.findOne({});
+      studentProfile = anyStudent || null;
+    }
+    let alumniProfile = (alumni && alumni[alumniIndex] && alumni[alumniIndex].profile) ? alumni[alumniIndex].profile : null;
+    if (!alumniProfile) {
+      const anyAlumniUser = await getAlumniUser(alumni, alumniIndex);
+      if (anyAlumniUser) alumniProfile = await getAlumniProfileForUserId(anyAlumniUser._id);
+    }
+    if (!alumniProfile || !studentProfile) {
+      console.log('   Skipping chat because alumniProfile or studentProfile does not exist');
+      continue;
+    }
     const query = { alumniId: alumniProfile._id, studentId: studentProfile._id };
     const existing = await ChatModel.findOne(query);
     if (existing) {
-      console.log(`   Skipping existing chat between ${students[i].user.name} and ${alumni[alumniIndex].name}`);
+      const studentName = students[i] && students[i].user ? students[i].user.name : (studentProfile.userName || 'student');
+      const alumniName = (alumni && alumni[alumniIndex] && alumni[alumniIndex].name) ? alumni[alumniIndex].name : (alumniProfile && alumniProfile.userName ? alumniProfile.userName : 'alumni');
+      console.log(`   Skipping existing chat between ${studentName} and ${alumniName}`);
       chats.push(existing);
       continue;
     }
     if (!isWriteEnabled) {
-      console.log(`   Dry-run: Would create chat between ${students[i].user.email} and ${alumni[alumniIndex].user.email}`);
+      const studentEmail = students[i] && students[i].user ? students[i].user.email : (studentProfile.userId ? `student:${studentProfile.userId}` : 'unknown');
+      const alumniEmail = (alumni && alumni[alumniIndex] && alumni[alumniIndex].user) ? alumni[alumniIndex].user.email : (alumniProfile.userId ? `alumni:${alumniProfile.userId}` : 'unknown');
+      console.log(`   Dry-run: Would create chat between ${studentEmail} and ${alumniEmail}`);
       continue;
     }
     const chat = await ChatModel.create({
@@ -1442,7 +1541,9 @@ async function main() {
   }
   
   try {
-    await mongoose.connect(MONGO_URI);
+    const connectOptions = DB_NAME ? { dbName: DB_NAME } : undefined;
+    console.log(`Connecting to MongoDB at ${MONGO_URI.replace(/(mongodb(?:\+srv)?:\/\/)(.*@)/, '$1***@')} using dbName=${DB_NAME || '<none>'}`);
+    await mongoose.connect(MONGO_URI, connectOptions);
     console.log('✅ Connected to MongoDB\n');
     
     const db = mongoose.connection.db;

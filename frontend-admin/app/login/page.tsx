@@ -22,8 +22,17 @@ const SarthakAdminLogin: React.FC = () => {
 
       // Fetch current user from store
       const loggedUser = useAuthStore.getState()?.user;
-      const userType = (loggedUser?.userType ?? "") as string;
-      if (!loggedUser || userType !== "Admin") {
+      // Debug logs to verify user and token
+      try {
+        console.debug('Admin login - loggedUser:', loggedUser);
+        console.debug('Admin login - userType:', loggedUser?.userType, 'role:', (loggedUser as any)?.role, 'isAdmin:', (loggedUser as any)?.isAdmin);
+        console.debug('Admin login - token:', typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+      } catch (err) {
+        // ignore in server context
+      }
+      const userType = ((loggedUser?.userType ?? loggedUser?.role ?? "") as string).toLowerCase();
+      const isAdminFlag = (loggedUser as any)?.isAdmin === true;
+      if (!loggedUser || (userType !== "admin" && !isAdminFlag)) {
         // If this account is not Admin, logout and show error
         logout();
         toast({
@@ -37,7 +46,21 @@ const SarthakAdminLogin: React.FC = () => {
 
       setLoading(false);
       toast({ title: "Welcome back", description: "You are signed into Admin Dashboard" });
-      router.push("/dashboard");
+      try {
+        // Use replace to avoid keeping /login in history and trigger a full client-side replace
+        await router.replace("/dashboard");
+        console.debug('router.replace(/dashboard) resolved');
+      } catch (err) {
+        console.debug('router.replace(/dashboard) failed', err);
+      }
+
+      // Fallback: if the route didn't change within a short time (e.g., due to a reload or HMR), force a full reload to /dashboard
+      setTimeout(() => {
+        if (window.location.pathname !== '/dashboard') {
+          console.debug('Fallback navigating to /dashboard');
+          window.location.href = '/dashboard';
+        }
+      }, 400);
     } catch (err: unknown) {
       setLoading(false);
       let message = "Invalid credentials.";
