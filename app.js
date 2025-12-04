@@ -18,18 +18,21 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/v1', v1Routes);
 
-dbConnect();
+// Start DB and then start the server — ensures we only start listening once DB connection succeeds
+dbConnect()
+  .then(() => {
+    app.get('/', (req, res) => {
+      res.send('Hello World!');
+    });
 
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
-
-
-app.listen(PORT, () => {
-  console.log(`Server listening at http://localhost:${PORT}`);
-});
+    app.listen(PORT, () => {
+      console.log(`Server listening at http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Could not start server due to DB error:', err);
+    process.exit(1);
+  });
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

@@ -20,6 +20,15 @@ export interface AuthState {
     graduationYear: number;
     degreeUrl?: string;
   }) => Promise<void>;
+  registerStudent?: (data: {
+    name: string;
+    email: string;
+    password: string;
+    enrollmentYear: number;
+    expectedGraduation?: number;
+    degreeType?: string;
+    rollNumber?: string;
+  }) => Promise<void>;
   logout: () => void;
   fetchProfile: () => Promise<void>;
   setUser: (user: User | null) => void;
@@ -75,6 +84,30 @@ export const useAuthStore = create<AuthState>()(
             localStorage.setItem('token', token);
           }
           
+          set({
+            user,
+            profile: profile || null,
+            token,
+            isLoading: false,
+            isAuthenticated: true,
+          });
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { message?: string } } };
+          set({
+            error: err.response?.data?.message || 'Registration failed',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+      registerStudent: async (data) => {
+        set({ isLoading: true, error: null });
+        try {
+          const response = await authApi.registerStudent(data as any);
+          const { token, user, profile } = response.data;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('token', token);
+          }
           set({
             user,
             profile: profile || null,

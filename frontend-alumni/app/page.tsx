@@ -14,12 +14,13 @@ export default function Home() {
     if (isAuthenticated && user) {
       router.replace("/feed");
     } else {
-      router.replace("/login");
+      // When not authenticated, default to register page
+      router.replace("/register");
     }
   }, [isAuthenticated, user, router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-primary/10">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-primary/5 via-background to-primary/10">
       <div className="text-center">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground">
           <GraduationCap className="h-10 w-10" />
