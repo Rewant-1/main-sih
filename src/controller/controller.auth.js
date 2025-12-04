@@ -47,14 +47,69 @@ const registerAlumni = async (req, res) => {
     }
 };
 
+const registerStudent = async (req, res) => {
+    const { name, email, password, enrollmentYear, expectedGraduation, course, rollNumber, phone } = req.body;
+    if (!name || !email || !password || !enrollmentYear || !expectedGraduation || !course || !rollNumber) {
+        return res.status(400).json({ success: false, error: "All fields are required for student registration." });
+    }
+
+    const session = await mongoose.startSession();
+    try {
+        session.startTransaction();
+
+        const existingUser = await UserModel.findOne({ email }).session(session);
+        if (existingUser) {
+            await session.abortTransaction();
+            return res.status(400).json({ success: false, error: "User already exists with this email." });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new UserModel({
+            name,
+            email,
+            passwordHash: hashedPassword,
+            userType: "Student",
+            phone,
+        });
+        await user.save({ session });
+
+        // create student profile
+        const StudentModel = require('../model/model.student');
+        const student = new StudentModel({
+            userId: user._id,
+            academic: {
+                entryDate: new Date(),
+                expectedGraduationDate: new Date(expectedGraduation),
+                degreeType: course,
+                degreeName: course,
+            },
+        });
+        await student.save({ session });
+
+        user.profileDetails = student._id;
+        await user.save({ session });
+
+        await session.commitTransaction();
+        res.status(201).json({ success: true, data: null, message: "Student registered successfully." });
+    } catch (error) {
+        await session.abortTransaction();
+        console.error("Error registering student:", error);
+        res.status(500).json({ success: false, error: "Internal server error." });
+    } finally {
+        session.endSession();
+    }
+};
+
 const login = async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
         return res.status(400).json({ success: false, error: "Email and password are required." });
     }
 
+    console.log(`[Auth] Login attempt for email: ${email}`);
     try {
         const user = await UserModel.findOne({ email });
+        if (!user) console.warn(`[Auth] No user found with email: ${email}`);
         if (!user) {
             return res.status(401).json({ success: false, error: "Invalid email or password." });
         }
@@ -72,10 +127,12 @@ const login = async (req, res) => {
             user.passwordHash
         );
         if (!isPasswordValid) {
+            console.warn(`[Auth] Invalid password for user: ${email} id=${user._id}`);
             return res.status(401).json({ success: false, error: "Invalid email or password." });
         }
 
         const token = jwt.sign({ userId: user._id, userType: user.userType }, process.env.JWT_SECRET);
+        console.log(`[Auth] Login successful for user: ${email} id=${user._id} type=${user.userType}`);
         res.status(200).json({ success: true, data: { token }, message: "Login successful." });
     } catch (error) {
         console.error("Error logging in:", error);
@@ -104,6 +161,7 @@ const verifyAlumni = async (req, res) => {
 
 module.exports = {
     registerAlumni,
+    registerStudent,
     login,
     verifyAlumni,
 };

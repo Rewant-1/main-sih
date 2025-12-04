@@ -5,6 +5,7 @@ const AuthController = require("../controller/controller.auth");
 const { internalAuth } = require("../middleware/middleware.auth");
 
 router.post("/register/alumni", AuthController.registerAlumni);
+router.post("/register/student", AuthController.registerStudent);
 router.post("/login", AuthController.login);
 router.post(
     "/verify/:alumniId",

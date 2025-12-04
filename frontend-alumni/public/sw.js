@@ -109,14 +109,28 @@ async function networkFirst(request) {
 
 async function staleWhileRevalidate(request) {
   const cached = await caches.match(request);
-  
-  const fetchPromise = fetch(request).then((response) => {
-    if (response.ok) {
-      const cache = caches.open(DYNAMIC_CACHE);
-      cache.then((c) => c.put(request, response.clone()));
-    }
-    return response;
-  }).catch(() => null);
+
+  const fetchPromise = fetch(request)
+    .then(async (response) => {
+      // If response not ok just pass it through
+      if (!response || !response.ok) return response;
+
+      // Clone immediately for caching so we don't attempt to clone after
+      // the response body has already been consumed by the client.
+      try {
+        const responseClone = response.clone();
+        const cache = await caches.open(DYNAMIC_CACHE);
+        await cache.put(request, responseClone);
+      } catch (err) {
+        console.error('[SW] Failed to cache response:', err);
+      }
+
+      return response;
+    })
+    .catch((err) => {
+      console.warn('[SW] Network fetch failed:', err);
+      return null;
+    });
 
   return cached || fetchPromise || caches.match('/offline');
 }
