@@ -1,6 +1,5 @@
 const JobService = require("../service/service.job.js");
 const JobModel = require("../model/model.job.js");
-const JobApplicationsModel = require("../model/model.jobApplication.js");
 
 const createJob = async (req, res) => {
     const { title, company, location, type, isOpen, description, skillsRequired } = req.body;
