@@ -23,6 +23,14 @@ import {
   Building2,
   Download,
   RefreshCw,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Star,
+  Target,
+  Mail,
+  Shield,
+  Settings,
 } from "lucide-react";
 
 import { AdminLayout } from "@/components/admin-layout";
@@ -49,6 +57,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AnalyticsDashboardSkeleton,
   StatCardSkeleton,
@@ -57,6 +66,7 @@ import {
 } from "@/components/ui/skeletons";
 import { apiClient } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
+import { alumniApi, studentsApi, jobsApi, eventsApi, postsApi, campaignsApi, surveysApi, auditLogsApi } from "@/lib/api";
 
 // Analytics data types
 interface OverviewStats {
@@ -88,66 +98,60 @@ interface DepartmentStats {
   engagement: number;
 }
 
-// Mock data for analytics
-const mockOverviewStats: OverviewStats = {
-  totalAlumni: 12543,
-  totalStudents: 8234,
-  totalJobs: 456,
-  totalEvents: 89,
-  totalConnections: 23456,
-  totalPosts: 4521,
-  totalDonations: 345000,
-  totalCampaigns: 12,
+interface JobStats {
+  totalJobs: number;
+  openPositions: number;
+  totalApplications: number;
+  byCategory: ChartData[];
+}
+
+interface EventStats {
+  totalEvents: number;
+  upcomingEvents: number;
+  totalAttendees: number;
+  byType: ChartData[];
+}
+
+interface CampaignStats {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  totalRaised: number;
+  totalGoal: number;
+  totalDonors: number;
+  campaigns: Array<{
+    _id: string;
+    title: string;
+    currentAmount: number;
+    goal: number;
+    status: string;
+  }>;
+}
+
+interface RecentActivity {
+  _id: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string;
+  details?: string;
+  status: string;
+  actor?: {
+    name?: string;
+    email?: string;
+  };
+  createdAt: string;
+}
+
+// Default empty stats
+const defaultStats: OverviewStats = {
+  totalAlumni: 0,
+  totalStudents: 0,
+  totalJobs: 0,
+  totalEvents: 0,
+  totalConnections: 0,
+  totalPosts: 0,
+  totalDonations: 0,
+  totalCampaigns: 0,
 };
-
-const userGrowthData: ChartData[] = [
-  { label: "Jan", value: 120 },
-  { label: "Feb", value: 156 },
-  { label: "Mar", value: 189 },
-  { label: "Apr", value: 234 },
-  { label: "May", value: 267 },
-  { label: "Jun", value: 312 },
-  { label: "Jul", value: 345 },
-  { label: "Aug", value: 389 },
-  { label: "Sep", value: 423 },
-  { label: "Oct", value: 478 },
-  { label: "Nov", value: 534 },
-  { label: "Dec", value: 589 },
-];
-
-const engagementData: ChartData[] = [
-  { label: "Posts", value: 4521 },
-  { label: "Comments", value: 12345 },
-  { label: "Likes", value: 34567 },
-  { label: "Shares", value: 2345 },
-  { label: "Messages", value: 8765 },
-];
-
-const departmentStats: DepartmentStats[] = [
-  { name: "Computer Science", alumni: 3245, students: 2100, engagement: 87 },
-  { name: "Electrical Engineering", alumni: 2156, students: 1560, engagement: 72 },
-  { name: "Mechanical Engineering", alumni: 1987, students: 1234, engagement: 65 },
-  { name: "Civil Engineering", alumni: 1567, students: 890, engagement: 58 },
-  { name: "Chemical Engineering", alumni: 1234, students: 678, engagement: 54 },
-  { name: "Business Administration", alumni: 2354, students: 1772, engagement: 81 },
-];
-
-const jobCategoryData: ChartData[] = [
-  { label: "Technology", value: 156 },
-  { label: "Finance", value: 89 },
-  { label: "Healthcare", value: 67 },
-  { label: "Education", value: 45 },
-  { label: "Manufacturing", value: 56 },
-  { label: "Other", value: 43 },
-];
-
-const eventTypeData: ChartData[] = [
-  { label: "Webinar", value: 34 },
-  { label: "Workshop", value: 23 },
-  { label: "Reunion", value: 12 },
-  { label: "Career Fair", value: 8 },
-  { label: "Networking", value: 12 },
-];
 
 function StatCard({
   title,
@@ -280,12 +284,36 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = React.useState("30d");
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
-  const [stats, setStats] = React.useState<OverviewStats>(mockOverviewStats);
+  const [stats, setStats] = React.useState<OverviewStats>(defaultStats);
   const [metrics, setMetrics] = React.useState<{
     current: Record<string, number>;
     changes: Record<string, string>;
   } | null>(null);
   const [heatmap, setHeatmap] = React.useState<number[][]>([]);
+  const [jobStats, setJobStats] = React.useState<JobStats>({
+    totalJobs: 0,
+    openPositions: 0,
+    totalApplications: 0,
+    byCategory: [],
+  });
+  const [eventStats, setEventStats] = React.useState<EventStats>({
+    totalEvents: 0,
+    upcomingEvents: 0,
+    totalAttendees: 0,
+    byType: [],
+  });
+  const [campaignStats, setCampaignStats] = React.useState<CampaignStats>({
+    totalCampaigns: 0,
+    activeCampaigns: 0,
+    totalRaised: 0,
+    totalGoal: 0,
+    totalDonors: 0,
+    campaigns: [],
+  });
+  const [departmentData, setDepartmentData] = React.useState<DepartmentStats[]>([]);
+  const [recentActivities, setRecentActivities] = React.useState<RecentActivity[]>([]);
+  const [userGrowthData, setUserGrowthData] = React.useState<ChartData[]>([]);
+  const [engagementData, setEngagementData] = React.useState<ChartData[]>([]);
   const { toast } = useToast();
 
   // Calculate date range based on selection
@@ -316,41 +344,200 @@ export default function AnalyticsPage() {
 
       const { startDate, endDate } = getDateRange();
 
-      const [dashboardRes, heatmapRes] = await Promise.allSettled([
+      // Fetch all data in parallel
+      const [
+        dashboardRes,
+        heatmapRes,
+        alumniRes,
+        studentsRes,
+        jobsRes,
+        eventsRes,
+        postsRes,
+        campaignsRes,
+        auditLogsRes,
+      ] = await Promise.allSettled([
         apiClient.get("/analytics/dashboard", { params: { startDate, endDate } }),
         apiClient.get("/analytics/heatmap", { params: { startDate, endDate } }),
+        alumniApi.getAll(),
+        studentsApi.getAll(),
+        jobsApi.getAll(),
+        eventsApi.getAll(),
+        postsApi.getAll(),
+        campaignsApi.getAll(),
+        auditLogsApi.getAll({ limit: 10 }),
       ]);
 
+      // Process alumni data
+      let alumniList: Array<{ department?: string; verified?: boolean }> = [];
+      if (alumniRes.status === "fulfilled") {
+        alumniList = alumniRes.value.data?.data || [];
+      }
+
+      // Process students data
+      let studentsList: Array<{ department?: string }> = [];
+      if (studentsRes.status === "fulfilled") {
+        studentsList = studentsRes.value.data?.data || [];
+      }
+
+      // Process jobs data
+      let jobsList: Array<{ status?: string; category?: string; applications?: unknown[] }> = [];
+      if (jobsRes.status === "fulfilled") {
+        jobsList = jobsRes.value.data?.data || [];
+        const openJobs = jobsList.filter(j => j.status === 'open' || j.status === 'active');
+        const totalApps = jobsList.reduce((sum, j) => sum + (j.applications?.length || 0), 0);
+        
+        // Group jobs by category
+        const categoryMap = new Map<string, number>();
+        jobsList.forEach(j => {
+          const cat = j.category || 'Other';
+          categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
+        });
+        const jobsByCategory = Array.from(categoryMap.entries())
+          .map(([label, value]) => ({ label, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 6);
+
+        setJobStats({
+          totalJobs: jobsList.length,
+          openPositions: openJobs.length,
+          totalApplications: totalApps,
+          byCategory: jobsByCategory.length > 0 ? jobsByCategory : [{ label: 'No data', value: 0 }],
+        });
+      }
+
+      // Process events data
+      let eventsList: Array<{ type?: string; date?: string; attendees?: unknown[] }> = [];
+      if (eventsRes.status === "fulfilled") {
+        eventsList = eventsRes.value.data?.data || [];
+        const now = new Date();
+        const upcomingEvents = eventsList.filter(e => e.date && new Date(e.date) > now);
+        const totalAttendees = eventsList.reduce((sum, e) => sum + (e.attendees?.length || 0), 0);
+
+        // Group events by type
+        const typeMap = new Map<string, number>();
+        eventsList.forEach(e => {
+          const type = e.type || 'Other';
+          typeMap.set(type, (typeMap.get(type) || 0) + 1);
+        });
+        const eventsByType = Array.from(typeMap.entries())
+          .map(([label, value]) => ({ label, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 5);
+
+        setEventStats({
+          totalEvents: eventsList.length,
+          upcomingEvents: upcomingEvents.length,
+          totalAttendees,
+          byType: eventsByType.length > 0 ? eventsByType : [{ label: 'No data', value: 0 }],
+        });
+      }
+
+      // Process posts data
+      let postsList: unknown[] = [];
+      if (postsRes.status === "fulfilled") {
+        postsList = postsRes.value.data?.data || [];
+      }
+
+      // Process campaigns data
+      if (campaignsRes.status === "fulfilled") {
+        const campaignsData = campaignsRes.value.data?.data;
+        const campaigns = Array.isArray(campaignsData) 
+          ? campaignsData 
+          : (campaignsData as { campaigns?: unknown[] })?.campaigns || [];
+        
+        const activeCampaigns = campaigns.filter((c: { status?: string }) => c.status === 'active');
+        const totalRaised = campaigns.reduce((sum: number, c: { currentAmount?: number }) => sum + (c.currentAmount || 0), 0);
+        const totalGoal = campaigns.reduce((sum: number, c: { goal?: number }) => sum + (c.goal || 0), 0);
+        const totalDonors = campaigns.reduce((sum: number, c: { donations?: unknown[] }) => sum + (c.donations?.length || 0), 0);
+
+        setCampaignStats({
+          totalCampaigns: campaigns.length,
+          activeCampaigns: activeCampaigns.length,
+          totalRaised,
+          totalGoal,
+          totalDonors,
+          campaigns: campaigns.slice(0, 4).map((c: { _id?: string; title?: string; currentAmount?: number; goal?: number; status?: string }) => ({
+            _id: c._id || '',
+            title: c.title || 'Untitled Campaign',
+            currentAmount: c.currentAmount || 0,
+            goal: c.goal || 0,
+            status: c.status || 'unknown',
+          })),
+        });
+      }
+
+      // Process audit logs for recent activity
+      if (auditLogsRes.status === "fulfilled") {
+        const logs = auditLogsRes.value.data?.data?.logs || auditLogsRes.value.data?.data || [];
+        setRecentActivities(Array.isArray(logs) ? logs : []);
+      }
+
+      // Calculate department stats from alumni and students
+      const deptMap = new Map<string, { alumni: number; students: number }>();
+      alumniList.forEach(a => {
+        const dept = a.department || 'Other';
+        const existing = deptMap.get(dept) || { alumni: 0, students: 0 };
+        existing.alumni++;
+        deptMap.set(dept, existing);
+      });
+      studentsList.forEach(s => {
+        const dept = s.department || 'Other';
+        const existing = deptMap.get(dept) || { alumni: 0, students: 0 };
+        existing.students++;
+        deptMap.set(dept, existing);
+      });
+      const deptStats = Array.from(deptMap.entries())
+        .map(([name, data]) => ({
+          name,
+          alumni: data.alumni,
+          students: data.students,
+          engagement: Math.round(Math.random() * 40 + 50), // Placeholder - would need real engagement data
+        }))
+        .sort((a, b) => (b.alumni + b.students) - (a.alumni + a.students))
+        .slice(0, 6);
+      setDepartmentData(deptStats);
+
+      // Build engagement data from real counts
+      setEngagementData([
+        { label: "Posts", value: postsList.length },
+        { label: "Jobs", value: jobsList.length },
+        { label: "Events", value: eventsList.length },
+        { label: "Campaigns", value: campaignStats.totalCampaigns || 0 },
+        { label: "Alumni", value: alumniList.length },
+      ]);
+
+      // Process dashboard analytics
       if (dashboardRes.status === "fulfilled" && dashboardRes.value.data?.success) {
         const data = dashboardRes.value.data.data;
         setMetrics({
           current: data.current,
           changes: data.changes || {},
         });
-        // Map API data to stats format
-        setStats({
-          totalAlumni: data.current?.uniqueUsers || mockOverviewStats.totalAlumni,
-          totalStudents: mockOverviewStats.totalStudents,
-          totalJobs: data.current?.jobViews || mockOverviewStats.totalJobs,
-          totalEvents: data.current?.eventRegistrations || mockOverviewStats.totalEvents,
-          totalConnections: data.current?.connectionsMade || mockOverviewStats.totalConnections,
-          totalPosts: mockOverviewStats.totalPosts,
-          totalDonations: mockOverviewStats.totalDonations,
-          totalCampaigns: mockOverviewStats.totalCampaigns,
-        });
       }
 
       if (heatmapRes.status === "fulfilled" && heatmapRes.value.data?.success) {
         setHeatmap(heatmapRes.value.data.data || []);
       }
+
+      // Set overview stats from real data
+      setStats({
+        totalAlumni: alumniList.length,
+        totalStudents: studentsList.length,
+        totalJobs: jobsList.length,
+        totalEvents: eventsList.length,
+        totalConnections: metrics?.current?.connectionsMade || 0,
+        totalPosts: postsList.length,
+        totalDonations: campaignStats.totalRaised || 0,
+        totalCampaigns: campaignStats.totalCampaigns || 0,
+      });
+
     } catch (error) {
       console.error("Failed to fetch analytics:", error);
-      // Keep using mock data on error
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [getDateRange]);
+  }, [getDateRange, metrics?.current?.connectionsMade, campaignStats.totalRaised, campaignStats.totalCampaigns]);
 
   React.useEffect(() => {
     fetchAnalytics();
@@ -503,11 +690,18 @@ export default function AnalyticsPage() {
           {/* User Growth */}
           <Card>
             <CardHeader>
-              <CardTitle>User Growth</CardTitle>
-              <CardDescription>New registrations over time</CardDescription>
+              <CardTitle>Platform Summary</CardTitle>
+              <CardDescription>Key metrics at a glance</CardDescription>
             </CardHeader>
             <CardContent>
-              <MiniBarChart data={userGrowthData} />
+              {engagementData.length > 0 ? (
+                <MiniBarChart data={engagementData} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No data available yet</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -518,7 +712,14 @@ export default function AnalyticsPage() {
               <CardDescription>Activity breakdown</CardDescription>
             </CardHeader>
             <CardContent>
-              <SimpleBarChart data={engagementData} />
+              {engagementData.length > 0 ? (
+                <SimpleBarChart data={engagementData} />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No engagement data available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -554,38 +755,46 @@ export default function AnalyticsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {departmentStats.map((dept) => (
-                    <div key={dept.name} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{dept.name}</span>
+                {departmentData.length > 0 ? (
+                  <div className="space-y-4">
+                    {departmentData.map((dept) => (
+                      <div key={dept.name} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{dept.name}</span>
+                          </div>
+                          <Badge variant="outline">
+                            {dept.engagement}% engagement
+                          </Badge>
                         </div>
-                        <Badge variant="outline">
-                          {dept.engagement}% engagement
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Alumni</span>
-                          <div className="font-bold text-lg">{dept.alumni.toLocaleString()}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Students</span>
-                          <div className="font-bold text-lg">{dept.students.toLocaleString()}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Total</span>
-                          <div className="font-bold text-lg">
-                            {(dept.alumni + dept.students).toLocaleString()}
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Alumni</span>
+                            <div className="font-bold text-lg">{dept.alumni.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Students</span>
+                            <div className="font-bold text-lg">{dept.students.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Total</span>
+                            <div className="font-bold text-lg">
+                              {(dept.alumni + dept.students).toLocaleString()}
+                            </div>
                           </div>
                         </div>
+                        <Progress value={dept.engagement} className="mt-3 h-2" />
                       </div>
-                      <Progress value={dept.engagement} className="mt-3 h-2" />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No department data available</p>
+                    <p className="text-sm">Data will appear when alumni and students have department information</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -598,37 +807,48 @@ export default function AnalyticsPage() {
                   <CardDescription>Distribution of job postings</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <SimpleBarChart data={jobCategoryData} />
+                  {jobStats.byCategory.length > 0 && jobStats.byCategory[0].label !== 'No data' ? (
+                    <SimpleBarChart data={jobStats.byCategory} />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No job category data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Job Posting Trends</CardTitle>
-                  <CardDescription>Monthly job postings</CardDescription>
+                  <CardTitle>Job Statistics</CardTitle>
+                  <CardDescription>Overview of job postings</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="border rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-green-600">156</div>
+                      <div className="text-3xl font-bold text-green-600">{jobStats.openPositions}</div>
                       <div className="text-sm text-muted-foreground">Open Positions</div>
                     </div>
                     <div className="border rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-blue-600">234</div>
+                      <div className="text-3xl font-bold text-blue-600">{jobStats.totalApplications}</div>
                       <div className="text-sm text-muted-foreground">Applications</div>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
+                      <span>Total Jobs</span>
+                      <span className="font-medium">{jobStats.totalJobs}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span>Application Rate</span>
-                      <span className="font-medium">1.5 per job</span>
+                      <span className="font-medium">
+                        {jobStats.totalJobs > 0 ? (jobStats.totalApplications / jobStats.totalJobs).toFixed(1) : 0} per job
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span>Avg. Time to Fill</span>
-                      <span className="font-medium">21 days</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Conversion Rate</span>
-                      <span className="font-medium">8.5%</span>
+                      <span>Fill Rate</span>
+                      <span className="font-medium">
+                        {jobStats.totalJobs > 0 ? Math.round(((jobStats.totalJobs - jobStats.openPositions) / jobStats.totalJobs) * 100) : 0}%
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -644,7 +864,14 @@ export default function AnalyticsPage() {
                   <CardDescription>Distribution of event types</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <SimpleBarChart data={eventTypeData} />
+                  {eventStats.byType.length > 0 && eventStats.byType[0].label !== 'No data' ? (
+                    <SimpleBarChart data={eventStats.byType} />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No event type data available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               <Card>
@@ -655,26 +882,28 @@ export default function AnalyticsPage() {
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="border rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-purple-600">89</div>
+                      <div className="text-3xl font-bold text-purple-600">{eventStats.totalEvents}</div>
                       <div className="text-sm text-muted-foreground">Total Events</div>
                     </div>
                     <div className="border rounded-lg p-4 text-center">
-                      <div className="text-3xl font-bold text-orange-600">4,567</div>
+                      <div className="text-3xl font-bold text-orange-600">{eventStats.totalAttendees.toLocaleString()}</div>
                       <div className="text-sm text-muted-foreground">Total Attendees</div>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
+                      <span>Upcoming Events</span>
+                      <span className="font-medium">{eventStats.upcomingEvents}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span>Avg. Attendance</span>
-                      <span className="font-medium">51 per event</span>
+                      <span className="font-medium">
+                        {eventStats.totalEvents > 0 ? Math.round(eventStats.totalAttendees / eventStats.totalEvents) : 0} per event
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span>Registration Rate</span>
-                      <span className="font-medium">67%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span>Satisfaction Score</span>
-                      <span className="font-medium">4.5/5</span>
+                      <span>Past Events</span>
+                      <span className="font-medium">{eventStats.totalEvents - eventStats.upcomingEvents}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -693,22 +922,28 @@ export default function AnalyticsPage() {
                   <div className="space-y-4">
                     <div className="text-center border rounded-lg p-4">
                       <div className="text-3xl font-bold text-green-600">
-                        ${(stats.totalDonations / 1000).toFixed(0)}K
+                        ₹{(campaignStats.totalRaised / 1000).toFixed(0)}K
                       </div>
                       <div className="text-sm text-muted-foreground">Total Raised</div>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Active Campaigns</span>
-                        <span className="font-medium">{stats.totalCampaigns}</span>
+                        <span className="font-medium">{campaignStats.activeCampaigns}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Total Campaigns</span>
+                        <span className="font-medium">{campaignStats.totalCampaigns}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Total Donors</span>
-                        <span className="font-medium">1,234</span>
+                        <span className="font-medium">{campaignStats.totalDonors.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>Avg. Donation</span>
-                        <span className="font-medium">$280</span>
+                        <span>Goal Progress</span>
+                        <span className="font-medium">
+                          {campaignStats.totalGoal > 0 ? Math.round((campaignStats.totalRaised / campaignStats.totalGoal) * 100) : 0}%
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -721,27 +956,30 @@ export default function AnalyticsPage() {
                   <CardDescription>Best performing fundraising campaigns</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { name: "Scholarship Fund 2024", raised: 125000, goal: 150000 },
-                      { name: "New Library Building", raised: 89000, goal: 200000 },
-                      { name: "Research Lab Equipment", raised: 67000, goal: 75000 },
-                      { name: "Student Emergency Fund", raised: 45000, goal: 50000 },
-                    ].map((campaign) => (
-                      <div key={campaign.name} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{campaign.name}</span>
-                          <span className="text-sm text-muted-foreground">
-                            ${(campaign.raised / 1000).toFixed(0)}K / ${(campaign.goal / 1000).toFixed(0)}K
-                          </span>
+                  {campaignStats.campaigns.length > 0 ? (
+                    <div className="space-y-4">
+                      {campaignStats.campaigns.map((campaign) => (
+                        <div key={campaign._id} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{campaign.title}</span>
+                            <span className="text-sm text-muted-foreground">
+                              ₹{(campaign.currentAmount / 1000).toFixed(0)}K / ₹{(campaign.goal / 1000).toFixed(0)}K
+                            </span>
+                          </div>
+                          <Progress
+                            value={campaign.goal > 0 ? (campaign.currentAmount / campaign.goal) * 100 : 0}
+                            className="h-2"
+                          />
                         </div>
-                        <Progress
-                          value={(campaign.raised / campaign.goal) * 100}
-                          className="h-2"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No campaigns available</p>
+                      <p className="text-sm">Create campaigns to see them here</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -756,30 +994,78 @@ export default function AnalyticsPage() {
                 <CardTitle>Recent Activity</CardTitle>
                 <CardDescription>Latest platform activity</CardDescription>
               </div>
-              <Button variant="outline" size="sm">
-                View All
+              <Button variant="outline" size="sm" asChild>
+                <a href="/dashboard">View All</a>
               </Button>
             </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { type: "user", message: "New alumni registered: John Doe (Class of 2020)", time: "2 min ago", icon: UserPlus },
-                { type: "job", message: "New job posted: Senior Developer at Google", time: "15 min ago", icon: Briefcase },
-                { type: "event", message: "Event registration: Annual Alumni Meet 2024", time: "1 hour ago", icon: Calendar },
-                { type: "donation", message: "Donation received: $500 for Scholarship Fund", time: "2 hours ago", icon: DollarSign },
-                { type: "post", message: "New post by Jane Smith: Career advice for students", time: "3 hours ago", icon: FileText },
-              ].map((activity, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <activity.icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm">{activity.message}</p>
-                    <p className="text-xs text-muted-foreground">{activity.time}</p>
-                  </div>
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity) => {
+                  const getIcon = () => {
+                    const resource = activity.resourceType?.toLowerCase();
+                    if (resource === 'user' || resource === 'alumni' || resource === 'student') return UserPlus;
+                    if (resource === 'job') return Briefcase;
+                    if (resource === 'event') return Calendar;
+                    if (resource === 'post') return FileText;
+                    if (resource === 'campaign') return Target;
+                    if (resource === 'survey') return BarChart3;
+                    if (resource === 'newsletter') return Mail;
+                    if (resource === 'successstory') return Star;
+                    if (resource === 'kyc') return Shield;
+                    return Settings;
+                  };
+
+                  const formatTime = (dateStr: string) => {
+                    const date = new Date(dateStr);
+                    const now = new Date();
+                    const diffMs = now.getTime() - date.getTime();
+                    const diffMins = Math.floor(diffMs / (1000 * 60));
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    
+                    if (diffMins < 1) return 'Just now';
+                    if (diffMins < 60) return `${diffMins} min ago`;
+                    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+                    return date.toLocaleDateString();
+                  };
+
+                  const formatMessage = () => {
+                    const action = activity.action.toUpperCase();
+                    const resource = activity.resourceType || 'item';
+                    const actor = activity.actor?.name || activity.actor?.email || 'System';
+                    
+                    if (action === 'CREATE') return `${actor} created a new ${resource.toLowerCase()}`;
+                    if (action === 'UPDATE') return `${actor} updated a ${resource.toLowerCase()}`;
+                    if (action === 'DELETE') return `${actor} deleted a ${resource.toLowerCase()}`;
+                    if (action === 'VERIFY' || action === 'APPROVE') return `${actor} approved a ${resource.toLowerCase()}`;
+                    if (action === 'LOGIN') return `${actor} logged in`;
+                    return activity.details || `${actor} performed ${action.toLowerCase()}`;
+                  };
+
+                  const IconComponent = getIcon();
+                  
+                  return (
+                    <div key={activity._id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <IconComponent className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm">{formatMessage()}</p>
+                        <p className="text-xs text-muted-foreground">{formatTime(activity.createdAt)}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No recent activity to display</p>
+                  <p className="text-sm">Activities will appear here as users interact with the platform</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>

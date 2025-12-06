@@ -132,10 +132,46 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign({ userId: user._id, userType: user.userType }, process.env.JWT_SECRET);
+        const sanitizedUser = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            userType: user.userType,
+            createdAt: user.createdAt,
+        };
         console.log(`[Auth] Login successful for user: ${email} id=${user._id} type=${user.userType}`);
-        res.status(200).json({ success: true, data: { token }, message: "Login successful." });
+        res.status(200).json({ success: true, data: { token, user: sanitizedUser }, message: "Login successful." });
     } catch (error) {
         console.error("Error logging in:", error);
+        res.status(500).json({ success: false, error: "Internal server error." });
+    }
+};
+
+const registerAdmin = async (req, res) => {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+        return res.status(400).json({ success: false, error: "Name, email, and password are required." });
+    }
+
+    try {
+        const existingUser = await UserModel.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ success: false, error: "User already exists with this email." });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = new UserModel({
+            name,
+            email,
+            passwordHash: hashedPassword,
+            userType: "Admin",
+        });
+        await user.save();
+
+        res.status(201).json({ success: true, data: null, message: "Admin registered successfully." });
+    } catch (error) {
+        console.error("Error registering admin:", error);
         res.status(500).json({ success: false, error: "Internal server error." });
     }
 };
@@ -162,6 +198,7 @@ const verifyAlumni = async (req, res) => {
 module.exports = {
     registerAlumni,
     registerStudent,
+    registerAdmin,
     login,
     verifyAlumni,
 };

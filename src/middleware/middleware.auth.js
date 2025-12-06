@@ -19,18 +19,43 @@ const authenticateToken = (req, res, next) => {
         return res.status(401).json({ message: "Access token missing" });
     }
 
+    if (process.env.NODE_ENV === 'development') {
+        try {
+            console.debug('[Auth] Authorization header present, token startsWith:', token?.slice(0,6));
+        } catch(e) {}
+    }
+
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
             return res.status(403).json({ message: "Invalid access token" });
         }
         req.user = user;
+        if (process.env.NODE_ENV === 'development') {
+            try {
+                console.debug('[Auth] token payload:', JSON.stringify(user));
+            } catch (e) {}
+        }
         next();
     });
 };
 
 const checkRole = (role) => {
     return (req, res, next) => {
-        if (req.user && req.user.userType === role) {
+        if (!req.user) {
+            return res.status(401).json({ message: "Not authenticated" });
+        }
+        
+        // Normalize role comparison - handle both array and string inputs
+        const userRole = req.user.userType?.toLowerCase();
+        let allowedRoles;
+        
+        if (Array.isArray(role)) {
+            allowedRoles = role.map(r => r.toLowerCase());
+        } else {
+            allowedRoles = [role.toLowerCase()];
+        }
+        
+        if (allowedRoles.includes(userRole)) {
             next();
         } else {
             res.status(403).json({ message: "Forbidden: Insufficient rights" });

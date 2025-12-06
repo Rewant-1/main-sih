@@ -16,6 +16,16 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Minimal request logger for development debugging
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    try {
+      console.debug(`[Request] ${req.method} ${req.originalUrl} - ${req.ip}`);
+    } catch (e) {}
+    next();
+  });
+}
+
 app.use('/api/v1', v1Routes);
 
 // Start DB and then start the server — ensures we only start listening once DB connection succeeds

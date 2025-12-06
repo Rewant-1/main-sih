@@ -26,6 +26,11 @@ export const useEventsStore = create<EventsState>()((set, get) => ({
 
   fetchEvents: async () => {
     set({ isLoading: true, error: null });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      set({ isLoading: false, error: 'Not authenticated' });
+      return;
+    }
     try {
       const response = await eventsApi.getAll();
       set({ events: response.data.data || [], isLoading: false });

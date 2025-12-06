@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -52,6 +52,49 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import api from "@/lib/api-client";
+
+function AdminGuard({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [checked, setChecked] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const verify = async () => {
+      try {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        if (!token) {
+          router.replace("/login");
+          return;
+        }
+        const res = await api.get("/auth/me");
+        const role = res.data?.data?.userType;
+        if (role !== "Admin") {
+          router.replace("/login");
+          return;
+        }
+        if (!cancelled) setChecked(true);
+      } catch (err) {
+        if (!cancelled) router.replace("/login");
+      }
+    };
+    verify();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, pathname]);
+
+  if (!checked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Checking admin access...
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 const navigationItems = [
   {
@@ -88,11 +131,6 @@ const navigationItems = [
     title: "Posts",
     href: "/posts",
     icon: FileText,
-  },
-  {
-    title: "Messages",
-    href: "/messages",
-    icon: MessageSquare,
   },
 ];
 
@@ -327,36 +365,40 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   // Mobile layout
   if (isMobile) {
     return (
-      <div className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b bg-background px-4">
-          <MobileNav />
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            <span className="font-semibold">AlumniConnect</span>
-          </div>
-          <div className="flex-1" />
-          <Avatar className="h-8 w-8">
-            <AvatarFallback>AD</AvatarFallback>
-          </Avatar>
-        </header>
-        <main className="flex-1 p-4">{children}</main>
-      </div>
+      <AdminGuard>
+        <div className="flex min-h-screen flex-col">
+          <header className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b bg-background px-4">
+            <MobileNav />
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <span className="font-semibold">AlumniConnect</span>
+            </div>
+            <div className="flex-1" />
+            <Avatar className="h-8 w-8">
+              <AvatarFallback>AD</AvatarFallback>
+            </Avatar>
+          </header>
+          <main className="flex-1 p-4">{children}</main>
+        </div>
+      </AdminGuard>
     );
   }
 
   // Desktop layout
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <main className="flex-1">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4">
-            <SidebarTrigger />
-            <div className="flex-1" />
-          </header>
-          <div className="p-6">{children}</div>
-        </main>
-      </div>
-    </SidebarProvider>
+    <AdminGuard>
+      <SidebarProvider>
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <main className="flex-1">
+            <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4">
+              <SidebarTrigger />
+              <div className="flex-1" />
+            </header>
+            <div className="p-6">{children}</div>
+          </main>
+        </div>
+      </SidebarProvider>
+    </AdminGuard>
   );
 }

@@ -22,6 +22,9 @@ const analyticsRoutes = require('./routes.analytics.js');
 
 const v1 = express.Router();
 
+// Simple health check for API and dev/local debugging
+v1.get('/ping', (req, res) => res.json({ success: true, message: 'pong' }));
+
 v1.use('/auth', authRoutes);
 v1.use('/students', studentRoutes);
 v1.use('/connections', connectionRoutes);

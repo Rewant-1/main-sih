@@ -1,8 +1,9 @@
-const User = require("../model/model.user.js");
+const Alumni = require("../model/model.alumni.js");
 
 const getAlumni = async () => {
   try {
-    const alumni = await User.find({ userType: 'Alumni' }).populate('profileDetails');
+    // Query Alumni model and populate userId to get user details (name, email)
+    const alumni = await Alumni.find().populate('userId', 'name email username userType createdAt');
     return alumni;
   } catch (error) {
     throw error;
@@ -11,7 +12,8 @@ const getAlumni = async () => {
 
 const getAlumniById = async (alumniId) => {
   try {
-    const alumni = await User.findOne({ _id: alumniId, userType: 'Alumni' }).populate('profileDetails');
+    // Query Alumni model by its _id and populate userId
+    const alumni = await Alumni.findById(alumniId).populate('userId', 'name email username userType createdAt');
     return alumni;
   } catch (error) {
     throw error;
@@ -20,16 +22,29 @@ const getAlumniById = async (alumniId) => {
 
 const updateAlumni = async (alumniId, alumniData) => {
   try {
-    const alumni = await User.findOne({ _id: alumniId, userType: 'Alumni' });
+    const alumni = await Alumni.findById(alumniId);
     if (!alumni) {
       return null;
     }
-    const updatedAlumni = await User.findOneAndUpdate(
-      { _id: alumniId, userType: 'Alumni' }, 
+    // Update Alumni document fields (verified, graduationYear, skills, degreeUrl)
+    const updatedAlumni = await Alumni.findByIdAndUpdate(
+      alumniId, 
       alumniData, 
       { new: true }
-    ).populate('profileDetails');
+    ).populate('userId', 'name email username userType createdAt');
     return updatedAlumni;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const verifyAlumni = async (alumniId) => {
+  try {
+    const alumni = await Alumni.findById(alumniId);
+    if (!alumni) return null;
+    alumni.verified = true;
+    await alumni.save();
+    return alumni;
   } catch (error) {
     throw error;
   }
@@ -39,4 +54,5 @@ module.exports = {
   getAlumni,
   getAlumniById,
   updateAlumni,
+  verifyAlumni,
 };

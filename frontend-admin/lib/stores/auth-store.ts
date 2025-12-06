@@ -31,6 +31,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const response = await authApi.login({ email, password });
+          if (process.env.NODE_ENV === 'development') console.debug('[auth-login] response', response?.status, response?.data);
           // API currently returns { success, data: { token } }; keep backward compatibility
           const extractedToken = response.data.token || response.data.data?.token;
           if (!extractedToken) {
@@ -42,21 +43,35 @@ export const useAuthStore = create<AuthState>()(
           }
 
           // Try to decode token to fetch user profile
-          let fetchedUser: User | null = response.data.user || null;
+          let fetchedUser: User | null = response.data.user || response.data.data?.user || null;
           try {
             if (!fetchedUser) {
               const payload = JSON.parse(atob(extractedToken.split('.')[1] || '')) as { userId?: string; userType?: string };
               if (payload?.userId) {
-                const userResp = await usersApi.getById(payload.userId);
-                fetchedUser = userResp.data?.data as User;
+                try {
+                  // Try to fetch detailed user from the API using the token
+                  const userResp = await usersApi.getById(payload.userId);
+                  fetchedUser = userResp.data?.data as User;
+                } catch (fetchErr) {
+                  // If fetching fails (e.g. CORS, network, or 401), fallback to a minimal user object
+                  console.warn('Failed to fetch user by id after login; using token payload as fallback', fetchErr);
+                  fetchedUser = {
+                    _id: payload.userId || 'unknown',
+                    name: 'Admin',
+                    email,
+                    userType: (payload.userType as User['userType']) || 'Admin',
+                    createdAt: new Date().toISOString(),
+                  } as User;
+                }
               } else if (payload?.userType) {
+                // If token only contains userType (no userId), create a minimal user
                 fetchedUser = {
                   _id: payload.userId || 'unknown',
                   name: 'Admin',
                   email,
                   userType: (payload.userType as User['userType']) || 'Admin',
                   createdAt: new Date().toISOString(),
-                };
+                } as User;
               }
             }
           } catch (decodeErr) {
@@ -69,7 +84,19 @@ export const useAuthStore = create<AuthState>()(
             token: extractedToken,
             isLoading: false,
           });
+
+          // Debugging help: log the final auth details after login
+          try {
+            if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+              const masked = extractedToken ? `${extractedToken.slice(0, 6)}...` : 'null';
+              console.debug('[auth-login] final auth state', {
+                token: masked,
+                user: fetchedUser,
+              });
+            }
+          } catch { }
         } catch (error: unknown) {
+          if (process.env.NODE_ENV === 'development') console.error('[auth-login] error', error);
           const err = error as { response?: { data?: { message?: string } } };
           set({
             error: err.response?.data?.message || 'Login failed',

@@ -35,8 +35,21 @@ const updateAlumni = async (req, res) => {
   }
 };
 
+const verifyAlumni = async (req, res) => {
+  try {
+    const alumni = await AlumniService.verifyAlumni(req.params.id);
+    if (!alumni) {
+      return res.status(404).json({ success: false, error: "Alumni not found" });
+    }
+    res.status(200).json({ success: true, data: alumni, message: "Alumni verified successfully." });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 module.exports = {
   getAlumni,
   getAlumniById,
   updateAlumni,
+  verifyAlumni,
 };

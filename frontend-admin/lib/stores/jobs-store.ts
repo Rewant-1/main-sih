@@ -26,6 +26,11 @@ export const useJobsStore = create<JobsState>()((set, get) => ({
 
   fetchJobs: async () => {
     set({ isLoading: true, error: null });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      set({ isLoading: false, error: 'Not authenticated' });
+      return;
+    }
     try {
       const response = await jobsApi.getAll();
       set({ jobs: response.data.data || [], isLoading: false });

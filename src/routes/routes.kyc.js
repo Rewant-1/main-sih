@@ -42,10 +42,17 @@ router.use(authenticateToken);
 // Get my KYC status
 router.get("/me", kycController.getMyKYC);
 
+// Admin routes - MUST come before /:kycId routes
+// Get pending reviews
+router.get("/admin/pending", checkRole(["Admin"]), kycController.getPendingReviews);
+
+// Get KYC statistics
+router.get("/admin/stats", checkRole(["Admin"]), kycController.getKYCStats);
+
 // Submit new KYC
 router.post("/", upload.array("documents", 5), kycController.submitKYC);
 
-// Get specific KYC
+// Get specific KYC - dynamic routes must come after static routes
 router.get("/:kycId", kycController.getKYCById);
 
 // Resubmit KYC
@@ -53,13 +60,6 @@ router.put("/:kycId/resubmit", upload.array("documents", 5), kycController.resub
 
 // Add document to KYC
 router.post("/:kycId/documents", upload.single("document"), kycController.addDocument);
-
-// Admin routes
-// Get pending reviews
-router.get("/admin/pending", checkRole(["Admin"]), kycController.getPendingReviews);
-
-// Get KYC statistics
-router.get("/admin/stats", checkRole(["Admin"]), kycController.getKYCStats);
 
 // Start review
 router.post("/:kycId/review/start", checkRole(["Admin"]), kycController.startReview);

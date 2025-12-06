@@ -73,7 +73,7 @@ export interface Job {
   title: string;
   company: string;
   location?: string;
-  type: 'full-time' | 'internship';
+  type: 'full-time' | 'part-time' | 'internship' | 'contract';
   description?: string;
   skillsRequired: string[];
   postedBy: string | Alumni;
@@ -84,7 +84,7 @@ export interface CreateJobData {
   title: string;
   company: string;
   location?: string;
-  type: 'full-time' | 'internship';
+  type: 'full-time' | 'part-time' | 'internship' | 'contract';
   description?: string;
   skillsRequired?: string[];
 }

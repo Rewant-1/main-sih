@@ -30,8 +30,17 @@ export const useUsersStore = create<UsersState>()((set, get) => ({
 
   fetchUsers: async () => {
     set({ isLoading: true, error: null });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      set({ isLoading: false, error: 'Not authenticated' });
+      return;
+    }
     try {
+      if (process.env.NODE_ENV === 'development') {
+        try { console.debug('[fetchUsers] server baseURL:', (await import('../api-client')).default.defaults?.baseURL); } catch(e){}
+      }
       const response = await usersApi.getAll();
+      if (process.env.NODE_ENV === 'development') console.debug('[fetchUsers] response url', response.config?.url, response.status);
       set({ users: response.data.data || [], isLoading: false });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
@@ -46,7 +55,11 @@ export const useUsersStore = create<UsersState>()((set, get) => ({
   fetchAlumni: async () => {
     set({ isLoading: true, error: null });
     try {
+      if (process.env.NODE_ENV === 'development') {
+        try { console.debug('[fetchAlumni] server baseURL:', (await import('../api-client')).default.defaults?.baseURL); } catch(e){}
+      }
       const response = await alumniApi.getAll();
+      if (process.env.NODE_ENV === 'development') console.debug('[fetchAlumni] response url', response.config?.url, response.status);
       set({ alumni: response.data.data || [], isLoading: false });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
@@ -61,7 +74,11 @@ export const useUsersStore = create<UsersState>()((set, get) => ({
   fetchStudents: async () => {
     set({ isLoading: true, error: null });
     try {
+      if (process.env.NODE_ENV === 'development') {
+        try { console.debug('[fetchStudents] server baseURL:', (await import('../api-client')).default.defaults?.baseURL); } catch(e){}
+      }
       const response = await studentsApi.getAll();
+      if (process.env.NODE_ENV === 'development') console.debug('[fetchStudents] response url', response.config?.url, response.status);
       set({ students: response.data.data || [], isLoading: false });
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };

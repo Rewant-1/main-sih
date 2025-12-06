@@ -1,8 +1,9 @@
-const User = require("../model/model.user.js");
+const Student = require("../model/model.student.js");
 
 const getStudents = async () => {
   try {
-    const students = await User.find({ userType: 'Student' }).populate('profileDetails');
+    // Query Student model and populate userId to get user details (name, email)
+    const students = await Student.find().populate('userId', 'name email username userType createdAt');
     return students;
   } catch (error) {
     throw error;
@@ -11,7 +12,8 @@ const getStudents = async () => {
 
 const getStudentById = async (studentId) => {
   try {
-    const student = await User.findOne({ _id: studentId, userType: 'Student' }).populate('profileDetails');
+    // Query Student model by its _id and populate userId
+    const student = await Student.findById(studentId).populate('userId', 'name email username userType createdAt');
     return student;
   } catch (error) {
     throw error;
@@ -20,15 +22,16 @@ const getStudentById = async (studentId) => {
 
 const updateStudent = async (studentId, studentData) => {
   try {
-    const student = await User.findOne({ _id: studentId, userType: 'Student' });
+    const student = await Student.findById(studentId);
     if (!student) {
       return null;
     }
-    const updatedStudent = await User.findOneAndUpdate(
-      { _id: studentId, userType: 'Student' }, 
+    // Update Student document fields (academic info)
+    const updatedStudent = await Student.findByIdAndUpdate(
+      studentId, 
       studentData, 
       { new: true }
-    ).populate('profileDetails');
+    ).populate('userId', 'name email username userType createdAt');
     return updatedStudent;
   } catch (error) {
     throw error;

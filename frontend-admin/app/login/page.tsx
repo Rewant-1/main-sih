@@ -20,8 +20,9 @@ const SarthakAdminLogin: React.FC = () => {
     try {
       await login(email, password);
 
-      // Fetch current user from store
-      const loggedUser = useAuthStore.getState()?.user;
+      // Fetch current user from store if available
+      const authStore = useAuthStore.getState();
+      let loggedUser = authStore?.user;
       // Debug logs to verify user and token
       try {
         console.debug('Admin login - loggedUser:', loggedUser);
@@ -30,9 +31,45 @@ const SarthakAdminLogin: React.FC = () => {
       } catch (err) {
         // ignore in server context
       }
-      const userType = ((loggedUser?.userType ?? loggedUser?.role ?? "") as string).toLowerCase();
+      // If store user is not available yet, try to decode token payload and fallback
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      let payloadUserType: string | null = null;
+      try {
+        if (!loggedUser && token) {
+          const payload = JSON.parse(atob(token.split('.')[1] || '')) as { userId?: string; userType?: string };
+          if (payload?.userId) {
+            // Try retrieving from store again after API-side fetch fallback
+            loggedUser = useAuthStore.getState()?.user;
+          }
+          payloadUserType = payload?.userType ? String(payload.userType).toLowerCase() : null;
+
+          // If no store user but token indicates Admin, set a minimal fallback user into the store
+          if (!loggedUser && payloadUserType === 'admin') {
+            const fallbackUser = {
+              _id: payload.userId || 'unknown',
+              name: 'Admin',
+              email,
+              userType: 'Admin' as any,
+              createdAt: new Date().toISOString(),
+            } as any;
+            try {
+              authStore.setUser(fallbackUser);
+              loggedUser = fallbackUser;
+              console.debug('Set fallback admin user in store based on token payload');
+            } catch (e) {
+              console.warn('Failed to set fallback user in store', e);
+            }
+          }
+        }
+      } catch (err) {
+        // ignore token decode errors
+      }
+
+      const userType = ((loggedUser?.userType ?? loggedUser?.role ?? payloadUserType ?? "") as string).toLowerCase();
       const isAdminFlag = (loggedUser as any)?.isAdmin === true;
-      if (!loggedUser || (userType !== "admin" && !isAdminFlag)) {
+      const isAdmin = (userType === 'admin') || isAdminFlag;
+      // Only logout if not admin based on token or store user
+      if (!isAdmin) {
         // If this account is not Admin, logout and show error
         logout();
         toast({
@@ -55,12 +92,18 @@ const SarthakAdminLogin: React.FC = () => {
       }
 
       // Fallback: if the route didn't change within a short time (e.g., due to a reload or HMR), force a full reload to /dashboard
+      // Fallback: allow a bit more time for state rehydration or HMR reload issues, then force a full navigation
       setTimeout(() => {
-        if (window.location.pathname !== '/dashboard') {
-          console.debug('Fallback navigating to /dashboard');
-          window.location.href = '/dashboard';
+        try {
+          console.debug('[login fallback] current pathname:', window.location.pathname);
+          if (window.location.pathname !== '/dashboard') {
+            console.debug('Fallback navigating to /dashboard');
+            window.location.href = '/dashboard';
+          }
+        } catch (e) {
+          console.warn('Failed to evaluate fallback navigation', e);
         }
-      }, 400);
+      }, 1500);
     } catch (err: unknown) {
       setLoading(false);
       let message = "Invalid credentials.";

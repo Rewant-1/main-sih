@@ -56,17 +56,14 @@ export const alumniApi = {
   update: (id: string, data: Partial<Alumni>) =>
     api.put<ApiResponse<Alumni>>(`/alumni/${id}`, data),
   verify: (alumniId: string) =>
-    api.post<ApiResponse<Alumni>>(`/auth/verify/${alumniId}`, {}, {
-      headers: { 'x-internal-api-key': process.env.NEXT_PUBLIC_INTERNAL_API_KEY || '' }
-    }),
+    api.post<ApiResponse<Alumni>>(`/alumni/${alumniId}/verify`),
 };
 
 // Students API
 export const studentsApi = {
   getAll: () => api.get<ApiResponse<Student[]>>('/students'),
   getById: (id: string) => api.get<ApiResponse<Student>>(`/students/${id}`),
-  create: (data: Partial<Student>) =>
-    api.post<ApiResponse<Student>>('/students', data),
+  // Note: Single student creation should use authApi.registerStudent or POST /auth/register/student
   bulkCreate: (students: Partial<Student>[]) =>
     api.post<ApiResponse<{ created: number; failed: unknown[] }>>('/students/bulk-create', { students }),
 };
@@ -305,6 +302,8 @@ export const newslettersApi = {
   update: (id: string, data: Partial<Newsletter>) =>
     api.put<ApiResponse<Newsletter>>(`/newsletters/${id}`, data),
   delete: (id: string) => api.delete<ApiResponse<void>>(`/newsletters/${id}`),
+  schedule: (id: string, scheduledAt: string) => 
+    api.post<ApiResponse<Newsletter>>(`/newsletters/${id}/schedule`, { scheduledAt }),
   send: (id: string) => api.post<ApiResponse<Newsletter>>(`/newsletters/${id}/send`),
-  getAnalytics: (id: string) => api.get<ApiResponse<unknown>>(`/newsletters/${id}/analytics`),
+  getStats: () => api.get<ApiResponse<unknown>>('/newsletters/stats'),
 };

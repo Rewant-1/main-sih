@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminLayout } from "@/components/admin-layout";
-import { useUsersStore, useJobsStore, useEventsStore, usePostsStore } from "@/lib/stores";
-import { campaignsApi, surveysApi, successStoriesApi, newslettersApi } from "@/lib/api";
+import { useAuthStore, useUsersStore, useJobsStore, useEventsStore, usePostsStore } from "@/lib/stores";
+import { campaignsApi, surveysApi, successStoriesApi, newslettersApi, auditLogsApi } from "@/lib/api";
 import {
   Users,
   GraduationCap,
@@ -32,6 +32,9 @@ import {
   BarChart3,
   Plus,
   ArrowRight,
+  UserPlus,
+  Settings,
+  Shield,
 } from "lucide-react";
 
 function StatCard({
@@ -138,6 +141,20 @@ interface DashboardStats {
   };
 }
 
+interface RecentActivity {
+  _id: string;
+  action: string;
+  resourceType: string;
+  resourceId?: string;
+  details?: string;
+  status: string;
+  actor?: {
+    name?: string;
+    email?: string;
+  };
+  createdAt: string;
+}
+
 export default function DashboardPage() {
   const { users, alumni, students, fetchUsers, fetchAlumni, fetchStudents, isLoading: usersLoading } = useUsersStore();
   const { jobs, fetchJobs, isLoading: jobsLoading } = useJobsStore();
@@ -151,15 +168,20 @@ export default function DashboardPage() {
     newsletters: { total: 0, sent: 0, avgOpenRate: 0 },
   });
   const [extendedLoading, setExtendedLoading] = useState(true);
+  
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
 
+  const token = useAuthStore((s) => s.token);
   useEffect(() => {
+    if (!token) return; // don't attempt fetches until token present
     fetchUsers();
     fetchAlumni();
     fetchStudents();
     fetchJobs();
     fetchEvents();
     fetchPosts();
-  }, [fetchUsers, fetchAlumni, fetchStudents, fetchJobs, fetchEvents, fetchPosts]);
+  }, [token, fetchUsers, fetchAlumni, fetchStudents, fetchJobs, fetchEvents, fetchPosts]);
 
   useEffect(() => {
     const fetchExtendedStats = async () => {
@@ -227,7 +249,190 @@ export default function DashboardPage() {
     fetchExtendedStats();
   }, []);
 
+  // Fetch recent activities from audit logs
+  useEffect(() => {
+    const fetchRecentActivities = async () => {
+      if (!token) return;
+      try {
+        setActivitiesLoading(true);
+        const response = await auditLogsApi.getAll({ limit: 5 });
+        const logs = response.data?.data?.logs || response.data?.data || [];
+        setRecentActivities(Array.isArray(logs) ? logs : []);
+      } catch (error) {
+        console.error('Failed to fetch recent activities:', error);
+        setRecentActivities([]);
+      } finally {
+        setActivitiesLoading(false);
+      }
+    };
+
+    fetchRecentActivities();
+  }, [token]);
+
   const pendingVerifications = alumni.filter((a) => !a.verified).length;
+  
+  // Helper function to format relative time
+  const formatRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Helper function to get activity status
+  const getActivityStatus = (activity: RecentActivity): "pending" | "completed" | "alert" => {
+    const action = activity.action.toUpperCase();
+    if (activity.status === 'failure' || action === 'DELETE' || action === 'REJECT' || action === 'KYC_REJECT') {
+      return 'alert';
+    }
+    if (activity.status === 'pending' || action === 'KYC_SUBMIT') {
+      return 'pending';
+    }
+    return 'completed';
+  };
+
+  // Helper function to format activity title
+  const formatActivityTitle = (activity: RecentActivity): string => {
+    const action = activity.action.toUpperCase();
+    const resource = activity.resourceType || '';
+    
+    // Build title based on action + resourceType from backend enums
+    const actionTitleMap: Record<string, Record<string, string>> = {
+      'CREATE': {
+        'User': 'New User Registration',
+        'Alumni': 'New Alumni Registration',
+        'Student': 'New Student Registration',
+        'Job': 'New Job Posted',
+        'Event': 'New Event Created',
+        'Post': 'New Post Published',
+        'Campaign': 'New Campaign Started',
+        'Survey': 'New Survey Created',
+        'Newsletter': 'New Newsletter Created',
+        'SuccessStory': 'New Success Story Submitted',
+        'Connection': 'New Connection Request',
+        'Chat': 'New Chat Started',
+        'Message': 'New Message Sent',
+        'default': 'New Item Created',
+      },
+      'UPDATE': {
+        'User': 'User Profile Updated',
+        'Alumni': 'Alumni Profile Updated',
+        'Student': 'Student Profile Updated',
+        'Job': 'Job Listing Updated',
+        'Event': 'Event Details Updated',
+        'Post': 'Post Updated',
+        'Campaign': 'Campaign Updated',
+        'Survey': 'Survey Updated',
+        'Newsletter': 'Newsletter Updated',
+        'SuccessStory': 'Success Story Updated',
+        'default': 'Item Updated',
+      },
+      'DELETE': {
+        'User': 'User Account Deleted',
+        'Alumni': 'Alumni Profile Deleted',
+        'Job': 'Job Removed',
+        'Event': 'Event Cancelled',
+        'Post': 'Post Deleted',
+        'Campaign': 'Campaign Removed',
+        'default': 'Item Deleted',
+      },
+      'APPROVE': {
+        'Alumni': 'Alumni Approved',
+        'SuccessStory': 'Success Story Approved',
+        'Campaign': 'Campaign Approved',
+        'default': 'Item Approved',
+      },
+      'REJECT': {
+        'Alumni': 'Alumni Rejected',
+        'SuccessStory': 'Success Story Rejected',
+        'KYC': 'KYC Verification Rejected',
+        'default': 'Item Rejected',
+      },
+      'VERIFY': {
+        'Alumni': 'Alumni Verified',
+        'User': 'User Verified',
+        'default': 'Item Verified',
+      },
+      'LOGIN': { 'default': 'User Login' },
+      'LOGOUT': { 'default': 'User Logout' },
+      'BULK_IMPORT': { 'default': 'Bulk Import Completed' },
+      'EXPORT': { 'default': 'Data Exported' },
+      'INVITE_SENT': { 'default': 'Invitation Sent' },
+      'PASSWORD_RESET': { 'default': 'Password Reset Requested' },
+      'KYC_SUBMIT': { 'default': 'KYC Documents Submitted' },
+      'KYC_APPROVE': { 'default': 'KYC Verification Approved' },
+      'KYC_REJECT': { 'default': 'KYC Verification Rejected' },
+    };
+    
+    const actionMap = actionTitleMap[action] || {};
+    return actionMap[resource] || actionMap['default'] || `${action} ${resource}`.trim();
+  };
+
+  // Helper function to format activity description
+  const formatActivityDescription = (activity: RecentActivity): string => {
+    const actorName = activity.actor?.name || activity.actor?.email || 'System';
+    const resource = activity.resourceType?.toLowerCase() || 'item';
+    
+    if (activity.details) return activity.details;
+    
+    const action = activity.action.toUpperCase();
+    switch(action) {
+      case 'CREATE':
+        return `${actorName} created a new ${resource}`;
+      case 'UPDATE':
+        return `${actorName} updated ${resource} details`;
+      case 'DELETE':
+        return `${actorName} removed a ${resource}`;
+      case 'APPROVE':
+      case 'VERIFY':
+        return `${actorName} approved/verified a ${resource}`;
+      case 'REJECT':
+        return `${actorName} rejected a ${resource}`;
+      case 'LOGIN':
+        return `${actorName} logged in`;
+      case 'LOGOUT':
+        return `${actorName} logged out`;
+      case 'BULK_IMPORT':
+        return `${actorName} performed a bulk import`;
+      case 'INVITE_SENT':
+        return `${actorName} sent an invitation`;
+      case 'KYC_SUBMIT':
+        return `${actorName} submitted KYC documents for verification`;
+      case 'KYC_APPROVE':
+        return `${actorName} approved KYC verification`;
+      case 'KYC_REJECT':
+        return `${actorName} rejected KYC verification`;
+      default:
+        return `${actorName} performed ${activity.action.toLowerCase()}`;
+    }
+  };
+
+  // Helper to get icon for activity (not used in current render but kept for future use)
+  const getActivityIcon = (activity: RecentActivity) => {
+    const resource = activity.resourceType?.toLowerCase();
+    if (resource === 'user' || resource === 'alumni' || resource === 'student') {
+      return UserPlus;
+    }
+    if (resource === 'job') return Briefcase;
+    if (resource === 'event') return Calendar;
+    if (resource === 'post') return FileText;
+    if (resource === 'campaign') return Target;
+    if (resource === 'survey') return ClipboardList;
+    if (resource === 'newsletter') return Mail;
+    if (resource === 'successstory') return Star;
+    if (resource === 'kyc') return Shield;
+    const action = activity.action.toUpperCase();
+    if (action === 'VERIFY' || action === 'APPROVE') return Shield;
+    return Settings;
+  };
 
   return (
     <AdminLayout>
@@ -433,30 +638,43 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <RecentActivityItem
-              title="New Alumni Registration"
-              description="John Doe registered and is waiting for verification"
-              time="2 hours ago"
-              status="pending"
-            />
-            <RecentActivityItem
-              title="Job Posted"
-              description="Software Engineer position at Tech Corp"
-              time="4 hours ago"
-              status="completed"
-            />
-            <RecentActivityItem
-              title="Event Created"
-              description="Annual Alumni Meet 2025 scheduled for Jan 15"
-              time="1 day ago"
-              status="completed"
-            />
-            <RecentActivityItem
-              title="Verification Needed"
-              description="3 alumni accounts require document review"
-              time="2 days ago"
-              status="alert"
-            />
+            {activitiesLoading ? (
+              // Loading skeletons
+              <>
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="flex items-start gap-4 rounded-lg border p-4">
+                    <Skeleton className="h-5 w-5 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-[200px]" />
+                      <Skeleton className="h-3 w-[300px]" />
+                    </div>
+                    <Skeleton className="h-3 w-[80px]" />
+                  </div>
+                ))}
+              </>
+            ) : recentActivities.length > 0 ? (
+              // Real data from audit logs
+              recentActivities.map((activity) => (
+                <RecentActivityItem
+                  key={activity._id}
+                  title={formatActivityTitle(activity)}
+                  description={formatActivityDescription(activity)}
+                  time={formatRelativeTime(activity.createdAt)}
+                  status={getActivityStatus(activity)}
+                />
+              ))
+            ) : (
+              // Empty state
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Clock className="h-12 w-12 text-muted-foreground/50 mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  No recent activity to display
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Activities will appear here as users interact with the platform
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

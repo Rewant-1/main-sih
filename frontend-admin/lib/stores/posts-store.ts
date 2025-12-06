@@ -27,6 +27,11 @@ export const usePostsStore = create<PostsState>()((set, get) => ({
 
   fetchPosts: async () => {
     set({ isLoading: true, error: null });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      set({ isLoading: false, error: 'Not authenticated' });
+      return;
+    }
     try {
       const response = await postsApi.getAll();
       set({ posts: response.data.data || [], isLoading: false });
