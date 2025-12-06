@@ -121,7 +121,7 @@ export default function CampaignsPage() {
       const params: Record<string, string> = {};
       if (statusFilter !== "all") params.status = statusFilter;
       if (categoryFilter !== "all") params.category = categoryFilter;
-      
+
       const response = await campaignsApi.getAll(params);
       setCampaigns(response.data.data?.campaigns || []);
     } catch {
@@ -329,56 +329,52 @@ export default function CampaignsPage() {
           </Dialog>
         </div>
 
-        {/* Analytics Cards */}
+        {/* Analytics Cards - Sarthak Theme */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics?.totalCampaigns || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {analytics?.activeCampaigns || 0} active
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Raised</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ₹{((analytics?.funding?.totalRaised || 0) / 100000).toFixed(1)}L
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Campaigns</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Target className="h-4 w-4 text-[#4a5f7c]" />
               </div>
-              <p className="text-xs text-muted-foreground">
-                of ₹{((analytics?.funding?.totalTarget || 0) / 100000).toFixed(1)}L target
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Supporters</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics?.funding?.totalSupporters || 0}</div>
-              <p className="text-xs text-muted-foreground">Total contributors</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics?.successRate || 0}%</div>
-              <p className="text-xs text-muted-foreground">
-                {analytics?.completedCampaigns || 0} completed
-              </p>
-            </CardContent>
-          </Card>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{analytics?.totalCampaigns || 0}</p>
+            <p className="text-[#7088aa] text-sm mt-1">{analytics?.activeCampaigns || 0} active</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Raised</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <DollarSign className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">
+              ₹{((analytics?.funding?.totalRaised || 0) / 100000).toFixed(1)}L
+            </p>
+            <p className="text-[#7088aa] text-sm mt-1">
+              of ₹{((analytics?.funding?.totalTarget || 0) / 100000).toFixed(1)}L target
+            </p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Supporters</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Users className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{analytics?.funding?.totalSupporters || 0}</p>
+            <p className="text-[#7088aa] text-sm mt-1">Total contributors</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Success Rate</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <TrendingUp className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{analytics?.successRate || 0}%</p>
+            <p className="text-[#7088aa] text-sm mt-1">{analytics?.completedCampaigns || 0} completed</p>
+          </div>
         </div>
 
         {/* Filters */}

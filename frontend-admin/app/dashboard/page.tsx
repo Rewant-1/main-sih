@@ -88,10 +88,11 @@ export default function DashboardPage() {
             verifiedAlumni={verifiedAlumni}
             profileCompletion={profileCompletion}
             employmentRate={employmentRate}
+            alumni={alumni}
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10 pb-8">
-            <TopSkillsChart />
-            <RecentActivityWidget />
+            <TopSkillsChart alumni={alumni} />
+            <RecentActivityWidget alumni={alumni} />
           </div>
         </div>
       </main>

@@ -243,7 +243,7 @@ const SarthakAdminLogin: React.FC = () => {
 
           {/* RIGHT SIDE — FEATURES GRID (FIXED LAYOUT) */}
           <div className="w-1/2 flex flex-col px-14 bg-white relative">
-            
+
             {/* 1. Main Content Wrapper: Takes available space and centers content */}
             <div className="flex-1 flex flex-col justify-center z-10">
               <h1 className="text-4xl font-bold mb-3">Manage Smarter with Sarthak</h1>

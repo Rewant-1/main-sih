@@ -207,11 +207,10 @@ function MobileNav() {
                       <Link
                         href={item.href}
                         onClick={() => setOpen(false)}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                          pathname === item.href
+                        className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${pathname === item.href
                             ? "bg-primary text-primary-foreground"
                             : "hover:bg-muted"
-                        }`}
+                          }`}
                       >
                         <item.icon className="h-4 w-4" />
                         {item.title}

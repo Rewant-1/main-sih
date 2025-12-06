@@ -9,7 +9,7 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
