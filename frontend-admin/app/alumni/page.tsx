@@ -1,26 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminLayout } from "@/components/admin-layout";
+import PageLayout from "@/components/dashboard/PageLayout";
 import { useUsersStore } from "@/lib/stores";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -29,13 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   Search,
@@ -45,28 +22,62 @@ import {
   Eye,
   FileText,
   GraduationCap,
+  FileSpreadsheet,
+  Download,
+  Upload,
+  Filter,
+  ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import type { Alumni } from "@/lib/types";
 
 export default function AlumniPage() {
   const { alumni, fetchAlumni, verifyAlumni, isLoading } = useUsersStore();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedAlumni, setSelectedAlumni] = useState<Alumni | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    degree: "",
+    department: "",
+    batch: "",
+    status: "", // all, verified, pending
+  });
 
   useEffect(() => {
     fetchAlumni();
   }, [fetchAlumni]);
 
+  // Apply all filters
   const filteredAlumni = alumni.filter((a) => {
-    const user = a.userId as { name?: string; email?: string } | undefined;
+    const user = a.userId as { name?: string; email?: string; phone?: string } | undefined;
     const name = user?.name || "";
     const email = user?.email || "";
-    return (
-      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.graduationYear.toString().includes(searchQuery)
-    );
+    const phone = user?.phone || "";
+
+    // Search filter
+    const matchesSearch =
+      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      phone.includes(searchTerm) ||
+      a.graduationYear.toString().includes(searchTerm);
+
+    // Degree filter - Alumni type doesn't have degree field
+    const matchesDegree = !filters.degree;
+
+    // Department filter - Alumni type doesn't have department field
+    const matchesDepartment = !filters.department;
+
+    // Batch filter
+    const matchesBatch = !filters.batch || a.graduationYear.toString() === filters.batch;
+
+    // Status filter
+    const matchesStatus =
+      !filters.status ||
+      filters.status === "all" ||
+      (filters.status === "verified" && a.verified) ||
+      (filters.status === "pending" && !a.verified);
+
+    return matchesSearch && matchesDegree && matchesDepartment && matchesBatch && matchesStatus;
   });
 
   const handleVerify = async (id: string) => {
@@ -78,251 +89,457 @@ export default function AlumniPage() {
     }
   };
 
+  // Export to Excel
+  const handleExportExcel = () => {
+    toast.success("Preparing Excel file...");
+    // Implementation would go here
+  };
+
+  // Export to PDF
+  const handleExportPDF = () => {
+    toast.success("Preparing PDF file...");
+    // Implementation would go here
+  };
+
+  // Download sample CSV
+  const handleDownloadSample = () => {
+    const csvContent = `Name,Phone,Email,Degree,Department,Graduation Year,Enrollment No
+John Doe,9876543210,john@example.com,Bachelor of Technology,Computer Engineering,2024,23293916001`;
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "alumni_sample.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Sample CSV downloaded");
+  };
+
+  // Handle CSV upload
+  const handleUploadCSV = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (file) {
+        toast.success(`Uploading ${file.name}...`);
+        // Implementation would go here
+      }
+    };
+    input.click();
+  };
+
+  // Get unique values for filters
+  const uniqueBatches = Array.from(
+    new Set(alumni.map((a) => a.graduationYear.toString()).filter(Boolean))
+  ).sort((a, b) => parseInt(b) - parseInt(a));
+
   const pendingCount = alumni.filter((a) => !a.verified).length;
   const verifiedCount = alumni.filter((a) => a.verified).length;
 
+  // Helper to get field value
+  const getField = (alumni: Alumni, field: string) => {
+    const user = alumni.userId as any;
+    return (alumni as any)[field] || user?.[field] || "";
+  };
+
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+    <PageLayout>
+      <div className="min-h-screen bg-[#ffffff] p-8 font-sans">
+        {/* --- Header Section --- */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Alumni Management
-            </h1>
-            <p className="text-muted-foreground">
-              Manage and verify alumni accounts
-            </p>
+            <h1 className="text-3xl font-bold text-[#001439]">Alumni Directory</h1>
+            <p className="text-[#7088aa] mt-1">Manage and track your alumni network</p>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dbeaff] rounded-lg text-[#4a5f7c] text-sm font-semibold hover:bg-[#f6f9fe] hover:text-[#001145] transition-colors shadow-sm"
+            >
+              <FileSpreadsheet size={16} />
+              Export Excel
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dbeaff] rounded-lg text-[#4a5f7c] text-sm font-semibold hover:bg-[#f6f9fe] hover:text-[#001145] transition-colors shadow-sm"
+            >
+              <FileText size={16} />
+              Export PDF
+            </button>
+            <button
+              onClick={handleDownloadSample}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dbeaff] rounded-lg text-[#4a5f7c] text-sm font-semibold hover:bg-[#f6f9fe] hover:text-[#001145] transition-colors shadow-sm"
+            >
+              <Download size={16} />
+              Download Sample CSV
+            </button>
+            <button
+              onClick={handleUploadCSV}
+              className="flex items-center gap-2 px-4 py-2 bg-[#7088aa] hover:bg-[#4a5f7c] text-white rounded-lg text-sm font-bold transition-colors shadow-md"
+            >
+              <Upload size={16} />
+              Upload CSV
+            </button>
+            <button
+              onClick={() => fetchAlumni()}
+              className="flex items-center gap-2 px-4 py-2 bg-[#001145] hover:bg-[#001439] text-white rounded-lg text-sm font-bold transition-colors shadow-md"
+            >
+              <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+              Refresh
+            </button>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Alumni</CardTitle>
-              <GraduationCap className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{alumni.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Verified</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{verifiedCount}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Pending Verification
-              </CardTitle>
-              <XCircle className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{pendingCount}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Alumni Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Alumni List</CardTitle>
-            <CardDescription>
-              View and manage all registered alumni
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search alumni..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+        {/* Stats Cards */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          <div className="bg-white p-6 rounded-xl border border-[#dbeaff] shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-[#7088aa] font-medium">Total Alumni</p>
+                <p className="text-3xl font-bold text-[#001439] mt-2">{alumni.length}</p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-[#dbeaff] flex items-center justify-center">
+                <GraduationCap className="h-6 w-6 text-[#001145]" />
               </div>
             </div>
+          </div>
+          <div className="bg-white p-6 rounded-xl border border-[#dbeaff] shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-[#7088aa] font-medium">Verified</p>
+                <p className="text-3xl font-bold text-green-600 mt-2">{verifiedCount}</p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-xl border border-[#dbeaff] shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-[#7088aa] font-medium">Pending Verification</p>
+                <p className="text-3xl font-bold text-yellow-600 mt-2">{pendingCount}</p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                <XCircle className="h-6 w-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+        </div>
 
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Graduation Year</TableHead>
-                    <TableHead>Skills</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-4 w-32" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-16" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-6 w-20" />
-                        </TableCell>
-                        <TableCell>
-                          <Skeleton className="h-8 w-8" />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : filteredAlumni.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <p className="text-muted-foreground">No alumni found</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredAlumni.map((alumniItem) => {
-                      const user = alumniItem.userId as { name?: string; email?: string } | undefined;
+        {/* --- Filter Section --- */}
+        <div className="bg-white p-5 rounded-xl border border-[#dbeaff] shadow-sm mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[#001145] font-bold text-sm flex items-center gap-2">
+              <Filter size={16} /> Filters
+            </h3>
+            <ChevronDown size={16} className="text-[#7088aa] cursor-pointer" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8bdda]" size={18} />
+              <input
+                type="text"
+                placeholder="Search alumni..."
+                className="w-full pl-10 pr-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#001439] placeholder-[#a8bdda] focus:outline-none focus:border-[#001145] transition-colors"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Status Filter */}
+            <select
+              className="w-full px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] appearance-none cursor-pointer"
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+              aria-label="Filter by status"
+            >
+              <option value="">All Status</option>
+              <option value="verified">Verified</option>
+              <option value="pending">Pending</option>
+            </select>
+
+            {/* Batch Dropdown */}
+            <select
+              className="w-full px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] appearance-none cursor-pointer"
+              value={filters.batch}
+              onChange={(e) => setFilters({ ...filters, batch: e.target.value })}
+              aria-label="Filter by graduation year"
+            >
+              <option value="">All Batches</option>
+              {uniqueBatches.map((batch) => (
+                <option key={batch} value={batch}>
+                  {batch}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="bg-white rounded-xl border border-[#dbeaff] shadow-sm p-12 text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-[#7088aa]" />
+            <p className="text-[#7088aa]">Loading alumni data...</p>
+          </div>
+        ) : (
+          <>
+            {/* --- Data Table --- */}
+            <div className="bg-white rounded-xl border border-[#dbeaff] shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1200px]">
+                  {/* Table Header */}
+                  <thead className="bg-[#001145] text-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                        Phone
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                        Graduation Year
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                        Skills
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+
+                  {/* Table Body */}
+                  <tbody className="divide-y divide-[#e4f0ff]">
+                    {filteredAlumni.map((alumniItem) => {
+                      const user = alumniItem.userId as {
+                        name?: string;
+                        email?: string;
+                        phone?: string;
+                      };
                       return (
-                        <TableRow key={alumniItem._id}>
-                          <TableCell className="font-medium">
-                            {user?.name || "N/A"}
-                          </TableCell>
-                          <TableCell>{user?.email || "N/A"}</TableCell>
-                          <TableCell>{alumniItem.graduationYear}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
+                        <tr key={alumniItem._id} className="hover:bg-[#f6f9fe] transition-colors group">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-bold text-[#001439]">
+                              {user?.name || "N/A"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <a
+                              href={`mailto:${user?.email}`}
+                              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {user?.email || "N/A"}
+                            </a>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-[#4a5f7c]">{user?.phone || "N/A"}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#dbeaff] text-[#001145]">
+                              {alumniItem.graduationYear}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
                               {alumniItem.skills?.slice(0, 2).map((skill, i) => (
-                                <Badge key={i} variant="secondary" className="text-xs">
+                                <span
+                                  key={i}
+                                  className="px-2 py-1 text-xs bg-[#f6f9fe] text-[#001145] rounded-full border border-[#dbeaff]"
+                                >
                                   {skill}
-                                </Badge>
+                                </span>
                               ))}
-                              {alumniItem.skills?.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
+                              {alumniItem.skills && alumniItem.skills.length > 2 && (
+                                <span className="px-2 py-1 text-xs bg-[#f6f9fe] text-[#7088aa] rounded-full border border-[#dbeaff]">
                                   +{alumniItem.skills.length - 2}
-                                </Badge>
+                                </span>
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={alumniItem.verified ? "default" : "destructive"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span
+                              className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                alumniItem.verified
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-yellow-100 text-yellow-800"
+                              }`}
                             >
                               {alumniItem.verified ? "Verified" : "Pending"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedAlumni(alumniItem);
-                                    setIsViewDialogOpen(true);
-                                  }}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => {
+                                  setSelectedAlumni(alumniItem);
+                                  setIsViewDialogOpen(true);
+                                }}
+                                className="text-[#7088aa] hover:text-[#001145] transition-colors p-1"
+                                title="View Details"
+                              >
+                                <Eye size={18} />
+                              </button>
+                              {alumniItem.degreeUrl && (
+                                <button
+                                  onClick={() => window.open(alumniItem.degreeUrl, "_blank")}
+                                  className="text-[#7088aa] hover:text-[#001145] transition-colors p-1"
+                                  title="View Degree"
                                 >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(alumniItem.degreeUrl, "_blank")
-                                  }
+                                  <FileText size={18} />
+                                </button>
+                              )}
+                              {!alumniItem.verified && (
+                                <button
+                                  onClick={() => handleVerify(alumniItem._id)}
+                                  className="text-green-600 hover:text-green-700 transition-colors p-1"
+                                  title="Verify Alumni"
                                 >
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  View Degree
-                                </DropdownMenuItem>
-                                {!alumniItem.verified && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleVerify(alumniItem._id)}
-                                  >
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Verify
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
+                                  <CheckCircle size={18} />
+                                </button>
+                              )}
+                              <button 
+                                className="text-[#a8bdda] hover:text-[#001145] transition-colors p-1"
+                                title="More options"
+                              >
+                                <MoreHorizontal size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
                       );
-                    })
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Empty State (if no data) */}
+              {filteredAlumni.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-[#7088aa]">
+                    {alumni.length === 0
+                      ? "No alumni found in the database."
+                      : "No alumni match your filters."}
+                  </p>
+                  {alumni.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setSearchTerm("");
+                        setFilters({ degree: "", department: "", batch: "", status: "" });
+                      }}
+                      className="mt-4 text-sm text-[#001145] hover:underline"
+                    >
+                      Clear all filters
+                    </button>
                   )}
-                </TableBody>
-              </Table>
+                </div>
+              )}
+
+              {/* Pagination Footer */}
+              <div className="px-6 py-4 bg-white border-t border-[#dbeaff] flex items-center justify-between">
+                <span className="text-sm text-[#7088aa]">
+                  Showing{" "}
+                  <span className="font-bold text-[#001439]">{filteredAlumni.length}</span> of{" "}
+                  <span className="font-bold text-[#001439]">{alumni.length}</span> entries
+                </span>
+                <div className="flex gap-2">
+                  <button className="px-3 py-1 text-sm border border-[#dbeaff] rounded hover:bg-[#f6f9fe] disabled:opacity-50">
+                    Previous
+                  </button>
+                  <button className="px-3 py-1 text-sm border border-[#dbeaff] rounded hover:bg-[#f6f9fe] bg-[#001145] text-white">
+                    1
+                  </button>
+                  <button className="px-3 py-1 text-sm border border-[#dbeaff] rounded hover:bg-[#f6f9fe]">
+                    2
+                  </button>
+                  <button className="px-3 py-1 text-sm border border-[#dbeaff] rounded hover:bg-[#f6f9fe]">
+                    Next
+                  </button>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          </>
+        )}
 
         {/* View Dialog */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl bg-white">
             <DialogHeader>
-              <DialogTitle>Alumni Details</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-[#001145]">Alumni Details</DialogTitle>
+              <DialogDescription className="text-[#7088aa]">
                 View detailed information about this alumni
               </DialogDescription>
             </DialogHeader>
             {selectedAlumni && (
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Name
-                  </label>
-                  <p className="text-sm">
-                    {(selectedAlumni.userId as { name?: string })?.name || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Email
-                  </label>
-                  <p className="text-sm">
-                    {(selectedAlumni.userId as { email?: string })?.email || "N/A"}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Graduation Year
-                  </label>
-                  <p className="text-sm">{selectedAlumni.graduationYear}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Skills
-                  </label>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {selectedAlumni.skills?.map((skill, i) => (
-                      <Badge key={i} variant="secondary">
-                        {skill}
-                      </Badge>
-                    ))}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-bold text-[#001145]">Name</label>
+                    <p className="text-sm text-[#4a5f7c] mt-1">
+                      {(selectedAlumni.userId as { name?: string })?.name || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-[#001145]">Email</label>
+                    <p className="text-sm text-[#4a5f7c] mt-1">
+                      {(selectedAlumni.userId as { email?: string })?.email || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-[#001145]">Phone</label>
+                    <p className="text-sm text-[#4a5f7c] mt-1">
+                      {(selectedAlumni.userId as { phone?: string })?.phone || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-[#001145]">Graduation Year</label>
+                    <p className="text-sm text-[#4a5f7c] mt-1">{selectedAlumni.graduationYear}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-[#001145]">
+                      Verification Status
+                    </label>
+                    <div className="mt-1">
+                      <span
+                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          selectedAlumni.verified
+                            ? "bg-green-100 text-green-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {selectedAlumni.verified ? "Verified" : "Pending"}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Verification Status
-                  </label>
-                  <div className="mt-1">
-                    <Badge
-                      variant={selectedAlumni.verified ? "default" : "destructive"}
-                    >
-                      {selectedAlumni.verified ? "Verified" : "Pending"}
-                    </Badge>
+                  <label className="text-sm font-bold text-[#001145]">Skills</label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedAlumni.skills && selectedAlumni.skills.length > 0 ? (
+                      selectedAlumni.skills.map((skill, i) => (
+                        <span
+                          key={i}
+                          className="px-3 py-1 text-xs bg-[#dbeaff] text-[#001145] rounded-full font-medium"
+                        >
+                          {skill}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-sm text-[#7088aa]">No skills listed</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -331,16 +548,28 @@ export default function AlumniPage() {
               <Button
                 variant="outline"
                 onClick={() => setIsViewDialogOpen(false)}
+                className="border-[#dbeaff] text-[#4a5f7c] hover:bg-[#f6f9fe]"
               >
                 Close
               </Button>
+              {selectedAlumni && selectedAlumni.degreeUrl && (
+                <Button
+                  onClick={() => window.open(selectedAlumni.degreeUrl, "_blank")}
+                  className="bg-[#7088aa] hover:bg-[#4a5f7c] text-white"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Degree
+                </Button>
+              )}
               {selectedAlumni && !selectedAlumni.verified && (
                 <Button
                   onClick={() => {
                     handleVerify(selectedAlumni._id);
                     setIsViewDialogOpen(false);
                   }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
                 >
+                  <CheckCircle className="mr-2 h-4 w-4" />
                   Verify Alumni
                 </Button>
               )}
@@ -348,6 +577,6 @@ export default function AlumniPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </AdminLayout>
+    </PageLayout>
   );
 }

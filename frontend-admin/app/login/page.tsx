@@ -65,7 +65,7 @@ const SarthakAdminLogin: React.FC = () => {
         // ignore token decode errors
       }
 
-      const userType = ((loggedUser?.userType ?? loggedUser?.role ?? payloadUserType ?? "") as string).toLowerCase();
+      const userType = ((loggedUser?.userType ?? (loggedUser as any)?.role ?? payloadUserType ?? "") as string).toLowerCase();
       const isAdminFlag = (loggedUser as any)?.isAdmin === true;
       const isAdmin = (userType === 'admin') || isAdminFlag;
       // Only logout if not admin based on token or store user

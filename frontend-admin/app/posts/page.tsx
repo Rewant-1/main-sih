@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminLayout } from "@/components/admin-layout";
+import PageLayout from "@/components/dashboard/PageLayout";
 import { usePostsStore } from "@/lib/stores";
 import {
   Card,
@@ -77,7 +77,7 @@ export default function PostsPage() {
   const totalComments = posts.reduce((acc, post) => acc + (Array.isArray(post.comments) ? post.comments.length : 0), 0);
 
   return (
-    <AdminLayout>
+    <PageLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -342,6 +342,6 @@ export default function PostsPage() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </AdminLayout>
+    </PageLayout>
   );
 }

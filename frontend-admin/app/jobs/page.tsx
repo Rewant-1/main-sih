@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminLayout } from "@/components/admin-layout";
+import PageLayout from "@/components/dashboard/PageLayout";
 import { useJobsStore } from "@/lib/stores";
 import {
   Card,
@@ -150,7 +150,7 @@ export default function JobsPage() {
   const internshipCount = jobs.filter((j) => j.type === "internship").length;
 
   return (
-    <AdminLayout>
+    <PageLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -488,6 +488,6 @@ export default function JobsPage() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </AdminLayout>
+    </PageLayout>
   );
 }

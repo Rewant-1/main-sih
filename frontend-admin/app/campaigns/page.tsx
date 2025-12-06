@@ -18,7 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { AdminLayout } from "@/components/admin-layout";
+import PageLayout from "@/components/dashboard/PageLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -204,7 +204,7 @@ export default function CampaignsPage() {
   );
 
   return (
-    <AdminLayout>
+    <PageLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -611,6 +611,6 @@ export default function CampaignsPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </AdminLayout>
+    </PageLayout>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminLayout } from "@/components/admin-layout";
+import PageLayout from "@/components/dashboard/PageLayout";
 import { useUsersStore } from "@/lib/stores";
 import {
   Card,
@@ -57,7 +57,7 @@ export default function StudentsPage() {
   const graduatedStudents = students.filter((s) => s.academic?.isCompleted).length;
 
   return (
-    <AdminLayout>
+    <PageLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -279,6 +279,6 @@ export default function StudentsPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </AdminLayout>
+    </PageLayout>
   );
 }

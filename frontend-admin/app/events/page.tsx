@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AdminLayout } from "@/components/admin-layout";
+import PageLayout from "@/components/dashboard/PageLayout";
 import { useEventsStore } from "@/lib/stores";
 import {
   Card,
@@ -115,7 +115,7 @@ export default function EventsPage() {
   const pastEvents = events.filter((e) => new Date(e.date) < new Date()).length;
 
   return (
-    <AdminLayout>
+    <PageLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -426,6 +426,6 @@ export default function EventsPage() {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </AdminLayout>
+    </PageLayout>
   );
 }
