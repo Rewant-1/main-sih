@@ -3,27 +3,14 @@
 import { useEffect, useState } from "react";
 import PageLayout from "@/components/dashboard/PageLayout";
 import { useJobsStore } from "@/lib/stores";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,7 +24,6 @@ import {
 import { toast } from "sonner";
 import {
   Search,
-  Plus,
   Eye,
   Trash2,
   Briefcase,
@@ -45,27 +31,16 @@ import {
   MapPin,
   Clock,
 } from "lucide-react";
-import type { Job, CreateJobData } from "@/lib/types";
-import { SARTHAK_CHART_COLORS, SARTHAK_THEME } from "@/lib/theme";
+import type { Job } from "@/lib/types";
+import { SARTHAK_CHART_COLORS } from "@/lib/theme";
 
 export default function JobsPage() {
-  const { jobs, fetchJobs, createJob, deleteJob, isLoading } = useJobsStore();
+  const { jobs, fetchJobs, deleteJob, isLoading } = useJobsStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState<CreateJobData>({
-    title: "",
-    company: "",
-    location: "",
-    type: "full-time",
-    description: "",
-    skillsRequired: [],
-  });
-  const [skillInput, setSkillInput] = useState("");
 
   useEffect(() => {
     fetchJobs();
@@ -78,24 +53,6 @@ export default function JobsPage() {
       job.location?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateJob = async () => {
-    try {
-      await createJob(formData);
-      toast.success("Job created successfully");
-      setIsCreateDialogOpen(false);
-      setFormData({
-        title: "",
-        company: "",
-        location: "",
-        type: "full-time",
-        description: "",
-        skillsRequired: [],
-      });
-    } catch {
-      toast.error("Failed to create job");
-    }
-  };
-
   const handleDeleteJob = async () => {
     if (!jobToDelete) return;
     try {
@@ -106,23 +63,6 @@ export default function JobsPage() {
     } catch {
       toast.error("Failed to delete job");
     }
-  };
-
-  const addSkill = () => {
-    if (skillInput.trim() && !formData.skillsRequired?.includes(skillInput.trim())) {
-      setFormData({
-        ...formData,
-        skillsRequired: [...(formData.skillsRequired || []), skillInput.trim()],
-      });
-      setSkillInput("");
-    }
-  };
-
-  const removeSkill = (skill: string) => {
-    setFormData({
-      ...formData,
-      skillsRequired: formData.skillsRequired?.filter((s) => s !== skill),
-    });
   };
 
   const fullTimeCount = jobs.filter((j) => j.type === "full-time").length;
@@ -139,128 +79,6 @@ export default function JobsPage() {
               Manage and post job opportunities for alumni
             </p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-[#001145] hover:bg-[#001439] text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl">
-                <Plus size={18} />
-                Create Job
-              </button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-[#001145]">Create New Job</DialogTitle>
-                <DialogDescription className="text-[#7088aa]">
-                  Add a new job posting to the platform
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title" className="text-[#001145]">Job Title</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    placeholder="e.g., Software Engineer"
-                    className="border-[#a8bdda] focus:border-[#001145]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company" className="text-[#001145]">Company</Label>
-                  <Input
-                    id="company"
-                    value={formData.company}
-                    onChange={(e) =>
-                      setFormData({ ...formData, company: e.target.value })
-                    }
-                    placeholder="e.g., Tech Corp"
-                    className="border-[#a8bdda] focus:border-[#001145]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location" className="text-[#001145]">Location</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
-                    }
-                    placeholder="e.g., Remote, New York"
-                    className="border-[#a8bdda] focus:border-[#001145]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type" className="text-[#001145]">Job Type</Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value: "full-time" | "internship") =>
-                      setFormData({ ...formData, type: value })
-                    }
-                  >
-                    <SelectTrigger className="border-[#a8bdda]">
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full-time">Full-time</SelectItem>
-                      <SelectItem value="internship">Internship</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-[#001145]">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Job description..."
-                    rows={3}
-                    className="border-[#a8bdda] focus:border-[#001145]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[#001145]">Skills Required</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={skillInput}
-                      onChange={(e) => setSkillInput(e.target.value)}
-                      placeholder="Add a skill"
-                      onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
-                      className="border-[#a8bdda]"
-                    />
-                    <Button type="button" variant="outline" onClick={addSkill} className="border-[#a8bdda] text-[#001145]">
-                      Add
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {formData.skillsRequired?.map((skill, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1 bg-[#e4f0ff] text-[#001145] text-xs font-semibold rounded-full cursor-pointer hover:bg-[#a8bdda] transition-colors"
-                        onClick={() => removeSkill(skill)}
-                      >
-                        {skill} ×
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)} className="border-[#a8bdda]">
-                  Cancel
-                </Button>
-                <button
-                  onClick={handleCreateJob}
-                  disabled={!formData.title || !formData.company}
-                  className="px-4 py-2 bg-[#001145] hover:bg-[#001439] text-white rounded-lg text-sm font-semibold disabled:opacity-50"
-                >
-                  Create Job
-                </button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
 
         {/* Stats Cards - Sarthak Theme (subtle icons) */}
@@ -316,7 +134,7 @@ export default function JobsPage() {
                 <Input
                   placeholder="Search jobs..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                   className="pl-9 border-[#a8bdda] focus:border-[#001145]"
                 />
               </div>
