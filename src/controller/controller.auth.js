@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const UserModel = require("../model/model.user");
 const AlumniModel = require("../model/model.alumni");
+const AdminModel = require("../model/model.admin");
+const AuditLog = require('../model/model.auditLog');
 
 const registerAlumni = async (req, res) => {
     const { name, email, password, graduationYear, degreeUrl } = req.body;
@@ -148,14 +150,24 @@ const login = async (req, res) => {
 };
 
 const registerAdmin = async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-        return res.status(400).json({ success: false, error: "Name, email, and password are required." });
+    const { name, email, password, adminType, address, phone, bio } = req.body;
+    
+    // Validate required fields
+    if (!name || !email || !password || !address?.street || !address?.city || !address?.state || !phone) {
+        return res.status(400).json({ 
+            success: false, 
+            error: "Name, email, password, address (street, city, state), and phone are required." 
+        });
     }
 
+    const session = await mongoose.startSession();
+
     try {
+        session.startTransaction();
+
         const existingUser = await UserModel.findOne({ email });
         if (existingUser) {
+            await session.abortTransaction();
             return res.status(400).json({ success: false, error: "User already exists with this email." });
         }
 
@@ -167,12 +179,34 @@ const registerAdmin = async (req, res) => {
             passwordHash: hashedPassword,
             userType: "Admin",
         });
-        await user.save();
+        await user.save({ session });
+
+        const admin = new AdminModel({
+            userId: user._id,
+            adminType: adminType || 'college',
+            address: {
+                street: address.street,
+                city: address.city,
+                state: address.state,
+                country: address.country || 'India',
+            },
+            phone,
+            bio: bio || '',
+        });
+        await admin.save({ session });
+
+        user.profileDetails = admin._id;
+        await user.save({ session });
+
+        await session.commitTransaction();
 
         res.status(201).json({ success: true, data: null, message: "Admin registered successfully." });
     } catch (error) {
+        await session.abortTransaction();
         console.error("Error registering admin:", error);
         res.status(500).json({ success: false, error: "Internal server error." });
+    } finally {
+        session.endSession();
     }
 };
 
@@ -188,10 +222,129 @@ const verifyAlumni = async (req, res) => {
         alumni.verified = true;
         await alumni.save();
 
+        // Log audit with actor info if available
+        try {
+            const actorId = req.adminId || req.user?.userId || null;
+            const actorType = req.user?.userType === 'Admin' ? 'Admin' : 'User';
+            await AuditLog.create({
+                action: 'VERIFY',
+                resourceType: 'Alumni',
+                resourceId: alumni._id,
+                actor: actorId,
+                actorType: actorType,
+                actorEmail: req.user?.email || null,
+                ipAddress: req.ip,
+                userAgent: req.headers['user-agent'],
+                metadata: { triggeredBy: actorId ? 'admin' : 'internal' }
+            });
+        } catch (err) {
+            // Do not block on audit log errors
+            console.warn('Failed to create audit log for alumni verification', err?.message || err);
+        }
+
         res.status(200).json({ success: true, data: null, message: "Alumni verified successfully." });
     } catch (error) {
         console.error("Error verifying alumni:", error);
         res.status(500).json({ success: false, error: "Internal server error." });
+    }
+};
+
+const loginAdmin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                error: "Email and password are required",
+            });
+        }
+
+        const user = await UserModel.findOne({ email, userType: "Admin" }).populate('profileDetails');
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                error: "Incorrect email or password",
+            });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                error: "Incorrect email or password",
+            });
+        }
+
+        const adminData = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            userType: user.userType,
+            profileDetails: user.profileDetails,
+        };
+
+        const token = jwt.sign(adminData, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+        return res.status(200).json({
+            success: true,
+            message: "Login successful",
+            data: {
+                token,
+                user: adminData,
+            },
+        });
+    } catch (error) {
+        console.error("Error logging in admin:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error",
+        });
+    }
+};
+
+const resetAdminPassword = async (req, res) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user?.id;
+
+        if (!userId || !oldPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                error: "All fields are required",
+            });
+        }
+
+        const user = await UserModel.findById(userId);
+        if (!user || user.userType !== "Admin") {
+            return res.status(404).json({
+                success: false,
+                error: "Admin not found",
+            });
+        }
+
+        const isPasswordValid = await bcrypt.compare(oldPassword, user.passwordHash);
+        if (!isPasswordValid) {
+            return res.status(401).json({
+                success: false,
+                error: "Incorrect old password",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.passwordHash = hashedPassword;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Password reset successful",
+        });
+    } catch (error) {
+        console.error("Error resetting admin password:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Internal server error",
+        });
     }
 };
 
@@ -201,4 +354,6 @@ module.exports = {
     registerAdmin,
     login,
     verifyAlumni,
+    loginAdmin,
+    resetAdminPassword,
 };
