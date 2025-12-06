@@ -19,7 +19,20 @@ const CampaignModel = require('../src/model/model.campaign');
 const SuccessStoryModel = require('../src/model/model.successStory');
 const SurveyModel = require('../src/model/model.survey');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/sih_2025';
+// Build MongoDB URI - append database name if not already in URI
+let MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/sih_2025';
+const DB_NAME = process.env.MONGO_DB_NAME || 'sih_2025';
+
+// If URI doesn't contain a database name after the host, append it
+if (MONGO_URI.includes('mongodb+srv://') && !MONGO_URI.includes('.net/')) {
+    // Atlas URI without db name (ends with .net or .net?)
+    MONGO_URI = MONGO_URI.replace(/(\?|$)/, `/${DB_NAME}$1`);
+} else if (MONGO_URI.includes('mongodb://') && MONGO_URI.match(/:\d+\/?$/)) {
+    // Standard URI ending with port, no db name
+    MONGO_URI = MONGO_URI.replace(/\/?$/, `/${DB_NAME}`);
+}
+
+console.log('📦 Target database:', DB_NAME);
 
 // Indian names for realistic data
 const firstNames = ['Rahul', 'Priya', 'Amit', 'Sneha', 'Vikram', 'Ananya', 'Rohan', 'Kavya', 'Arjun', 'Meera',
@@ -61,6 +74,7 @@ async function seedDatabase() {
 
         // Clear existing data
         console.log('🧹 Clearing existing data...');
+        try { await UserModel.collection.dropIndexes(); } catch (e) { console.log('  Note: No indexes to drop or drop failed'); }
         await Promise.all([
             UserModel.deleteMany({}),
             AlumniModel.deleteMany({}),
