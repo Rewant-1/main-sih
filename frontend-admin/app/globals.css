@@ -119,7 +119,91 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ========================================
+   GOOGLE TRANSLATE - HIDE ALL DEFAULT UI
+   ======================================== */
+
+/* Hide the top translation banner/bar completely */
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+.skiptranslate iframe,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+div#goog-gt-tt,
+.goog-te-menu-frame,
+.goog-te-menu2,
+.goog-te-tooltip {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  max-height: 0 !important;
+  max-width: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Prevent body from being pushed down by Google Translate */
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+/* Hide the skiptranslate container that wraps the banner */
+.skiptranslate {
+  display: none !important;
+  height: 0 !important;
+  visibility: hidden !important;
+}
+
+/* But keep our google_translate_element visible for functionality (just hidden visually) */
+#google_translate_element {
+  display: block !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+}
+
+/* Hide the default Google Translate gadget and dropdown */
+.goog-te-gadget,
+.goog-te-gadget-simple,
+.goog-te-gadget-icon,
+.goog-te-combo {
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Remove any text highlighting that Google Translate applies */
+.goog-text-highlight {
+  background: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Hide Google Translate attribution */
+.goog-logo-link,
+.goog-te-gadget>span {
+  display: none !important;
+}
+
+/* Fix any potential z-index issues */
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd {
+  display: none !important;
 }
