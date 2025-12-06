@@ -4,21 +4,22 @@
  * Run with: npm run seed-demo
  */
 
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 // Import models
-const UserModel = require('./src/model/model.user');
-const AlumniModel = require('./src/model/model.alumni');
-const StudentModel = require('./src/model/model.student');
-const JobModel = require('./src/model/model.job');
-const EventModel = require('./src/model/model.event');
-const CampaignModel = require('./src/model/model.campaign');
-const SuccessStoryModel = require('./src/model/model.successStory');
-const SurveyModel = require('./src/model/model.survey');
+const UserModel = require('../src/model/model.user');
+const AlumniModel = require('../src/model/model.alumni');
+const StudentModel = require('../src/model/model.student');
+const JobModel = require('../src/model/model.job');
+const EventModel = require('../src/model/model.event');
+const CampaignModel = require('../src/model/model.campaign');
+const SuccessStoryModel = require('../src/model/model.successStory');
+const SurveyModel = require('../src/model/model.survey');
 
-const { MONGO_URI } = require('./config');
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/sih_2025';
 
 // Indian names for realistic data
 const firstNames = ['Rahul', 'Priya', 'Amit', 'Sneha', 'Vikram', 'Ananya', 'Rohan', 'Kavya', 'Arjun', 'Meera',

@@ -1,6 +1,7 @@
 "use client";
 
 
+
 import * as React from "react";
 import dynamic from "next/dynamic";
 import {
@@ -35,6 +36,7 @@ import {
 
 import PageLayout from "@/components/dashboard/PageLayout";
 import { alumniApi } from "@/lib/api";
+import type { AlumniMarker } from "@/components/analytics/AlumniMap";
 
 // Dynamic import for Map component (Leaflet doesn't work with SSR)
 const AlumniMapComponent = dynamic(() => import("@/components/analytics/AlumniMap"), {
@@ -177,9 +179,9 @@ export default function AnalyticsPage() {
     // Map data (alumni with coordinates)
     const mapData = alumni
       .filter((a) => a.location?.coordinates?.lat && a.location?.coordinates?.lng)
-      .map((a) => ({
+      .map((a): AlumniMarker => ({
         id: a._id,
-        name: typeof a.userId === "object" ? a.userId?.name : "Alumni",
+        name: typeof a.userId === "object" ? (a.userId?.name || "Alumni") : "Alumni",
         graduation_year: a.graduationYear,
         company: a.currentCompany || "N/A",
         role: a.designation || "N/A",
@@ -208,14 +210,15 @@ export default function AnalyticsPage() {
 
   // Get unique values for map filters
   const uniqueCompanies = React.useMemo(() => {
-    const set = new Set(analytics.mapData.map((a) => a.company).filter(Boolean));
+    const set = new Set(analytics.mapData.map((a) => a.company).filter((c): c is string => !!c));
     return ["All", ...Array.from(set).sort()];
   }, [analytics.mapData]);
 
   const uniqueBatches = React.useMemo(() => {
-    const set = new Set(analytics.mapData.map((a) => a.graduation_year?.toString()).filter(Boolean));
+    const set = new Set(analytics.mapData.map((a) => a.graduation_year?.toString()).filter((b): b is string => !!b));
     return ["All", ...Array.from(set).sort((a, b) => parseInt(b) - parseInt(a))];
   }, [analytics.mapData]);
+
 
   const filteredMapData = React.useMemo(() => {
     return analytics.mapData.filter((a) => {
