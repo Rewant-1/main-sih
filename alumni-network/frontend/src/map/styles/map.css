@@ -1,0 +1,10 @@
+.alumni-map-wrapper { padding: 12px; font-family: Inter, Arial, sans-serif; }
+.map-title { margin: 6px 0 12px 0; font-size: 20px; }
+.map-container { position: relative; }
+.map-loading, .map-error { position: absolute; top: 8px; left: 8px; z-index: 600; background: rgba(255,255,255,0.95); padding: 6px 10px; border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.map-filters { display: flex; gap: 12px; margin-bottom: 8px; align-items: center; }
+.map-filters label { font-size: 14px; display:flex; flex-direction: column; gap:6px; }
+.btn { padding: 6px 10px; border-radius: 6px; border: none; cursor: pointer; }
+.btn-primary { background: #0b66ff; color: white; }
+.btn-ghost { background: transparent; color: #0b66ff; text-decoration: underline; }
+.map-footer { margin-top: 6px; color: #666; }

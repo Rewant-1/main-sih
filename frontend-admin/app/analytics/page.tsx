@@ -1,464 +1,636 @@
 "use client";
 
+
 import * as React from "react";
+import dynamic from "next/dynamic";
 import {
-  Search,
-  FileSpreadsheet,
-  FileText,
-  Download,
-  Upload,
+  Users,
+  MapPin,
+  Building2,
+  GraduationCap,
+  TrendingUp,
+  Briefcase,
+  Globe,
+  RefreshCw,
   Filter,
   ChevronDown,
-  MoreHorizontal,
-  RefreshCw,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Legend,
+  AreaChart,
+  Area,
+} from "recharts";
 
 import PageLayout from "@/components/dashboard/PageLayout";
-import { useToast } from "@/hooks/use-toast";
 import { alumniApi } from "@/lib/api";
 
-// Alumni interface matching backend
-interface AlumniData {
+// Dynamic import for Map component (Leaflet doesn't work with SSR)
+const AlumniMapComponent = dynamic(() => import("@/components/analytics/AlumniMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[500px] bg-gradient-to-br from-[#f0f7ff] to-[#e8f4ff] rounded-2xl flex items-center justify-center">
+      <div className="text-center">
+        <Globe className="h-12 w-12 text-[#7088aa] mx-auto mb-3 animate-pulse" />
+        <p className="text-[#7088aa]">Loading map...</p>
+      </div>
+    </div>
+  ),
+});
+
+// Beautiful color palette
+const COLORS = {
+  primary: "#001145",
+  secondary: "#0066FF",
+  accent: "#00C9A7",
+  warning: "#FFB547",
+  danger: "#FF6B6B",
+  purple: "#8B5CF6",
+  pink: "#EC4899",
+  cyan: "#06B6D4",
+  lime: "#84CC16",
+};
+
+const CHART_COLORS = [
+  "#0066FF",
+  "#00C9A7",
+  "#FFB547",
+  "#8B5CF6",
+  "#EC4899",
+  "#FF6B6B",
+  "#06B6D4",
+  "#84CC16",
+];
+
+interface Alumni {
   _id: string;
-  userId?: {
-    name?: string;
-    email?: string;
-    phone?: string;
-  } | string;
-  name?: string;
-  email?: string;
-  phone?: string;
+  userId?: { name?: string; email?: string } | string;
+  verified?: boolean;
+  graduationYear?: number;
   degree?: string;
   department?: string;
-  graduationYear?: string | number;
-  enrollmentNo?: string;
-  verified?: boolean;
+  currentCompany?: string;
+  designation?: string;
+  employmentStatus?: string;
+  location?: {
+    city?: string;
+    state?: string;
+    country?: string;
+    coordinates?: { lat?: number; lng?: number };
+  };
 }
 
 export default function AnalyticsPage() {
-  const [alumniData, setAlumniData] = React.useState<AlumniData[]>([]);
-  const [filteredData, setFilteredData] = React.useState<AlumniData[]>([]);
+  const [alumni, setAlumni] = React.useState<Alumni[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [filters, setFilters] = React.useState({
-    degree: "",
-    department: "",
-    batch: "",
-  });
-  const { toast } = useToast();
+  const [activeTab, setActiveTab] = React.useState<"overview" | "map" | "charts">("overview");
+  const [mapFilter, setMapFilter] = React.useState({ company: "All", batch: "All" });
 
-  // Fetch alumni data from backend
   React.useEffect(() => {
-    fetchAlumniData();
+    fetchAlumni();
   }, []);
 
-  const fetchAlumniData = async () => {
+  const fetchAlumni = async () => {
     try {
       setLoading(true);
       const response = await alumniApi.getAll();
-      const data = response.data?.data || [];
-      setAlumniData(data);
-      setFilteredData(data);
+      setAlumni(response.data?.data || []);
     } catch (error) {
       console.error("Failed to fetch alumni:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load alumni data",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Apply filters
-  React.useEffect(() => {
-    let filtered = [...alumniData];
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter((alumni) => {
-        const name = alumni.name || (alumni.userId as any)?.name || "";
-        const email = alumni.email || (alumni.userId as any)?.email || "";
-        const phone = alumni.phone || (alumni.userId as any)?.phone || "";
-        const enrollmentNo = alumni.enrollmentNo || "";
-
-        return (
-          name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          phone.includes(searchTerm) ||
-          enrollmentNo.includes(searchTerm)
-        );
-      });
-    }
-
-    // Degree filter
-    if (filters.degree) {
-      filtered = filtered.filter(
-        (alumni) => alumni.degree?.toLowerCase().includes(filters.degree.toLowerCase())
-      );
-    }
-
-    // Department filter
-    if (filters.department) {
-      filtered = filtered.filter(
-        (alumni) => alumni.department?.toLowerCase().includes(filters.department.toLowerCase())
-      );
-    }
-
-    // Batch filter
-    if (filters.batch) {
-      filtered = filtered.filter(
-        (alumni) => alumni.graduationYear?.toString() === filters.batch
-      );
-    }
-
-    setFilteredData(filtered);
-  }, [searchTerm, filters, alumniData]);
-
-  // Export to Excel
-  const handleExportExcel = () => {
-    toast({
-      title: "Export Started",
-      description: "Preparing Excel file...",
-    });
-    // Implementation for Excel export would go here
-  };
-
-  // Export to PDF
-  const handleExportPDF = () => {
-    toast({
-      title: "Export Started",
-      description: "Preparing PDF file...",
-    });
-    // Implementation for PDF export would go here
-  };
-
-  // Download sample CSV
-  const handleDownloadSample = () => {
-    const csvContent = `Name,Phone,Email,Degree,Department,Graduation Year,Enrollment No
-John Doe,9876543210,john@example.com,Bachelor of Technology,Computer Engineering,2024,23293916001`;
+  // Calculate analytics
+  const analytics = React.useMemo(() => {
+    const total = alumni.length;
+    const verified = alumni.filter((a) => a.verified).length;
+    const employed = alumni.filter((a) => a.employmentStatus === "employed" || a.currentCompany).length;
     
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "alumni_sample.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+    // Department distribution
+    const deptMap: Record<string, number> = {};
+    alumni.forEach((a) => {
+      const dept = a.department || "Unknown";
+      deptMap[dept] = (deptMap[dept] || 0) + 1;
+    });
+    const departments = Object.entries(deptMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
 
-  // Handle CSV upload
-  const handleUploadCSV = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".csv";
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        toast({
-          title: "Upload Started",
-          description: `Uploading ${file.name}...`,
-        });
-        // Implementation for CSV upload would go here
+    // Graduation year trends
+    const yearMap: Record<number, number> = {};
+    alumni.forEach((a) => {
+      if (a.graduationYear) {
+        yearMap[a.graduationYear] = (yearMap[a.graduationYear] || 0) + 1;
       }
+    });
+    const gradTrends = Object.entries(yearMap)
+      .map(([year, count]) => ({ year: parseInt(year), count }))
+      .sort((a, b) => a.year - b.year);
+
+    // Company distribution
+    const companyMap: Record<string, number> = {};
+    alumni.forEach((a) => {
+      if (a.currentCompany) {
+        companyMap[a.currentCompany] = (companyMap[a.currentCompany] || 0) + 1;
+      }
+    });
+    const topCompanies = Object.entries(companyMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+
+    // Location distribution
+    const cityMap: Record<string, number> = {};
+    alumni.forEach((a) => {
+      if (a.location?.city) {
+        cityMap[a.location.city] = (cityMap[a.location.city] || 0) + 1;
+      }
+    });
+    const topCities = Object.entries(cityMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+
+    // Degree distribution
+    const degreeMap: Record<string, number> = {};
+    alumni.forEach((a) => {
+      const degree = a.degree || "Unknown";
+      degreeMap[degree] = (degreeMap[degree] || 0) + 1;
+    });
+    const degrees = Object.entries(degreeMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    // Map data (alumni with coordinates)
+    const mapData = alumni
+      .filter((a) => a.location?.coordinates?.lat && a.location?.coordinates?.lng)
+      .map((a) => ({
+        id: a._id,
+        name: typeof a.userId === "object" ? a.userId?.name : "Alumni",
+        graduation_year: a.graduationYear,
+        company: a.currentCompany || "N/A",
+        role: a.designation || "N/A",
+        city: a.location?.city || "",
+        state: a.location?.state || "",
+        display_point: {
+          lat: a.location!.coordinates!.lat!,
+          lng: a.location!.coordinates!.lng!,
+        },
+      }));
+
+    return {
+      total,
+      verified,
+      pending: total - verified,
+      employed,
+      employmentRate: total ? Math.round((employed / total) * 100) : 0,
+      departments,
+      gradTrends,
+      topCompanies,
+      topCities,
+      degrees,
+      mapData,
     };
-    input.click();
-  };
+  }, [alumni]);
 
-  // Get unique values for filters
-  const uniqueDegrees = React.useMemo(() => {
-    const degrees = new Set<string>();
-    alumniData.forEach((alumni) => {
-      if (alumni.degree) degrees.add(alumni.degree);
-    });
-    return Array.from(degrees);
-  }, [alumniData]);
-
-  const uniqueDepartments = React.useMemo(() => {
-    const departments = new Set<string>();
-    alumniData.forEach((alumni) => {
-      if (alumni.department) departments.add(alumni.department);
-    });
-    return Array.from(departments);
-  }, [alumniData]);
+  // Get unique values for map filters
+  const uniqueCompanies = React.useMemo(() => {
+    const set = new Set(analytics.mapData.map((a) => a.company).filter(Boolean));
+    return ["All", ...Array.from(set).sort()];
+  }, [analytics.mapData]);
 
   const uniqueBatches = React.useMemo(() => {
-    const batches = new Set<string>();
-    alumniData.forEach((alumni) => {
-      if (alumni.graduationYear) batches.add(alumni.graduationYear.toString());
-    });
-    return Array.from(batches).sort((a, b) => parseInt(b) - parseInt(a));
-  }, [alumniData]);
+    const set = new Set(analytics.mapData.map((a) => a.graduation_year?.toString()).filter(Boolean));
+    return ["All", ...Array.from(set).sort((a, b) => parseInt(b) - parseInt(a))];
+  }, [analytics.mapData]);
 
-  // Helper function to get field value
-  const getField = (alumni: AlumniData, field: keyof AlumniData) => {
-    return alumni[field] || (alumni.userId as any)?.[field] || "";
-  };
+  const filteredMapData = React.useMemo(() => {
+    return analytics.mapData.filter((a) => {
+      if (mapFilter.company !== "All" && a.company !== mapFilter.company) return false;
+      if (mapFilter.batch !== "All" && String(a.graduation_year) !== mapFilter.batch) return false;
+      return true;
+    });
+  }, [analytics.mapData, mapFilter]);
 
   return (
     <PageLayout>
-      <div className="min-h-screen bg-[#ffffff] p-8 font-sans">
-        {/* --- Header Section --- */}
+      <div className="min-h-screen bg-gradient-to-br from-[#fafcff] via-white to-[#f0f7ff] p-8">
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-[#001439]">Alumni Directory</h1>
-            <p className="text-[#7088aa] mt-1">Manage and track your alumni network</p>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-[#001145] to-[#0066FF] bg-clip-text text-transparent">
+              Analytics Dashboard
+            </h1>
+            <p className="text-[#7088aa] mt-2">
+              Comprehensive insights into your alumni network
+            </p>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
-            <button 
-              onClick={handleExportExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dbeaff] rounded-lg text-[#4a5f7c] text-sm font-semibold hover:bg-[#f6f9fe] hover:text-[#001145] transition-colors shadow-sm"
-            >
-              <FileSpreadsheet size={16} />
-              Export Excel
-            </button>
-            <button 
-              onClick={handleExportPDF}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dbeaff] rounded-lg text-[#4a5f7c] text-sm font-semibold hover:bg-[#f6f9fe] hover:text-[#001145] transition-colors shadow-sm"
-            >
-              <FileText size={16} />
-              Export PDF
-            </button>
-            <button 
-              onClick={handleDownloadSample}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dbeaff] rounded-lg text-[#4a5f7c] text-sm font-semibold hover:bg-[#f6f9fe] hover:text-[#001145] transition-colors shadow-sm"
-            >
-              <Download size={16} />
-              Download Sample CSV
-            </button>
-            <button 
-              onClick={handleUploadCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-[#7088aa] hover:bg-[#4a5f7c] text-white rounded-lg text-sm font-bold transition-colors shadow-md"
-            >
-              <Upload size={16} />
-              Upload CSV
-            </button>
-            <button 
-              onClick={fetchAlumniData}
-              className="flex items-center gap-2 px-4 py-2 bg-[#001145] hover:bg-[#001439] text-white rounded-lg text-sm font-bold transition-colors shadow-md"
-            >
-              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              Refresh
-            </button>
-          </div>
+          <button
+            onClick={fetchAlumni}
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#001145] to-[#0033aa] hover:from-[#001439] hover:to-[#0044bb] text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Refresh Data
+          </button>
         </div>
 
-        {/* --- Filter Section --- */}
-        <div className="bg-white p-5 rounded-xl border border-[#dbeaff] shadow-sm mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[#001145] font-bold text-sm flex items-center gap-2">
-              <Filter size={16} /> Filters
-            </h3>
-            <ChevronDown size={16} className="text-[#7088aa] cursor-pointer" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8bdda]" size={18} />
-              <input
-                type="text"
-                placeholder="Search alumni..."
-                className="w-full pl-10 pr-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#001439] placeholder-[#a8bdda] focus:outline-none focus:border-[#001145] transition-colors"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Degree Dropdown */}
-            <select
-              className="w-full px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] appearance-none cursor-pointer"
-              value={filters.degree}
-              onChange={(e) => setFilters({ ...filters, degree: e.target.value })}
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-8 bg-white/80 backdrop-blur-sm p-1.5 rounded-2xl border border-[#e4f0ff] shadow-sm w-fit">
+          {(["overview", "map", "charts"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                activeTab === tab
+                  ? "bg-gradient-to-r from-[#001145] to-[#0066FF] text-white shadow-lg"
+                  : "text-[#7088aa] hover:text-[#001145] hover:bg-[#f6f9fe]"
+              }`}
             >
-              <option value="">All Degrees</option>
-              {uniqueDegrees.map((degree) => (
-                <option key={degree} value={degree}>
-                  {degree}
-                </option>
-              ))}
-            </select>
-
-            {/* Department Dropdown */}
-            <select
-              className="w-full px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] appearance-none cursor-pointer"
-              value={filters.department}
-              onChange={(e) => setFilters({ ...filters, department: e.target.value })}
-            >
-              <option value="">All Departments</option>
-              {uniqueDepartments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
-
-            {/* Batch Dropdown */}
-            <select
-              className="w-full px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] appearance-none cursor-pointer"
-              value={filters.batch}
-              onChange={(e) => setFilters({ ...filters, batch: e.target.value })}
-            >
-              <option value="">All Batches</option>
-              {uniqueBatches.map((batch) => (
-                <option key={batch} value={batch}>
-                  {batch}
-                </option>
-              ))}
-            </select>
-          </div>
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
 
-        {/* Loading State */}
         {loading ? (
-          <div className="bg-white rounded-xl border border-[#dbeaff] shadow-sm p-12 text-center">
-            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-[#7088aa]" />
-            <p className="text-[#7088aa]">Loading alumni data...</p>
+          <div className="bg-white rounded-3xl border border-[#e4f0ff] shadow-xl p-16 text-center">
+            <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-[#7088aa]" />
+            <p className="text-[#7088aa] text-lg">Loading analytics data...</p>
           </div>
         ) : (
           <>
-            {/* --- Data Table --- */}
-            <div className="bg-white rounded-xl border border-[#dbeaff] shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1000px]">
-                  {/* Table Header */}
-                  <thead className="bg-[#001145] text-white">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                        Phone
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                        Degree
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                        Department
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                        Graduation
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">
-                        Enrollment
-                      </th>
-                      <th className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
+            {/* Overview Tab */}
+            {activeTab === "overview" && (
+              <div className="space-y-8">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <StatCard
+                    icon={Users}
+                    label="Total Alumni"
+                    value={analytics.total}
+                    trend="+12%"
+                    color="from-[#0066FF] to-[#00C9A7]"
+                  />
+                  <StatCard
+                    icon={GraduationCap}
+                    label="Verified Alumni"
+                    value={analytics.verified}
+                    subLabel={`${analytics.pending} pending`}
+                    color="from-[#8B5CF6] to-[#EC4899]"
+                  />
+                  <StatCard
+                    icon={Briefcase}
+                    label="Employment Rate"
+                    value={`${analytics.employmentRate}%`}
+                    subLabel={`${analytics.employed} employed`}
+                    color="from-[#FFB547] to-[#FF6B6B]"
+                  />
+                  <StatCard
+                    icon={MapPin}
+                    label="Locations Tracked"
+                    value={analytics.mapData.length}
+                    subLabel="On the map"
+                    color="from-[#06B6D4] to-[#84CC16]"
+                  />
+                </div>
 
-                  {/* Table Body */}
-                  <tbody className="divide-y divide-[#e4f0ff]">
-                    {filteredData.map((alumni) => (
-                      <tr
-                        key={alumni._id}
-                        className="hover:bg-[#f6f9fe] transition-colors group"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-bold text-[#001439]">
-                            {getField(alumni, "name") || "N/A"}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-[#4a5f7c]">
-                            {getField(alumni, "phone") || "N/A"}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <a
-                            href={`mailto:${getField(alumni, "email")}`}
-                            className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            {getField(alumni, "email") || "N/A"}
-                          </a>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-[#001439]">
-                            {alumni.degree || "N/A"}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-[#4a5f7c]">
-                            {alumni.department || "N/A"}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#dbeaff] text-[#001145]">
-                            {alumni.graduationYear || "N/A"}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-mono text-[#7088aa]">
-                            {alumni.enrollmentNo || "N/A"}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <button className="text-[#a8bdda] hover:text-[#001145] transition-colors">
-                            <MoreHorizontal size={20} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                {/* Quick Overview Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Department Distribution */}
+                  <ChartCard title="Department Distribution" icon={Building2}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={analytics.departments}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          innerRadius={60}
+                          label={({ name, percent }) =>
+                            `${name} (${(percent * 100).toFixed(0)}%)`
+                          }
+                          labelLine={false}
+                        >
+                          {analytics.departments.map((_, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
 
-              {/* Empty State (if no data) */}
-              {filteredData.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-[#7088aa]">
-                    {alumniData.length === 0
-                      ? "No alumni found in the database."
-                      : "No alumni match your filters."}
-                  </p>
-                  {alumniData.length > 0 && (
+                  {/* Graduation Trends */}
+                  <ChartCard title="Graduation Year Trends" icon={TrendingUp}>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={analytics.gradTrends}>
+                        <defs>
+                          <linearGradient id="gradientArea" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#0066FF" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#0066FF" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" />
+                        <XAxis dataKey="year" stroke="#7088aa" />
+                        <YAxis stroke="#7088aa" />
+                        <Tooltip
+                          contentStyle={{
+                            background: "white",
+                            border: "1px solid #e4f0ff",
+                            borderRadius: "12px",
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="count"
+                          stroke="#0066FF"
+                          strokeWidth={3}
+                          fill="url(#gradientArea)"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+                </div>
+
+                {/* Map Preview */}
+                <ChartCard title="Alumni Geographic Distribution" icon={Globe} fullWidth>
+                  <div className="h-[400px]">
+                    <AlumniMapComponent alumni={analytics.mapData.slice(0, 50)} />
+                  </div>
+                  <div className="mt-4 text-center">
                     <button
-                      onClick={() => {
-                        setSearchTerm("");
-                        setFilters({ degree: "", department: "", batch: "" });
-                      }}
-                      className="mt-4 text-sm text-[#001145] hover:underline"
+                      onClick={() => setActiveTab("map")}
+                      className="text-[#0066FF] hover:text-[#001145] font-semibold text-sm"
                     >
-                      Clear all filters
+                      View Full Map →
                     </button>
-                  )}
-                </div>
-              )}
+                  </div>
+                </ChartCard>
+              </div>
+            )}
 
-              {/* Simple Pagination Footer */}
-              <div className="px-6 py-4 bg-white border-t border-[#dbeaff] flex items-center justify-between">
-                <span className="text-sm text-[#7088aa]">
-                  Showing{" "}
-                  <span className="font-bold text-[#001439]">{filteredData.length}</span>{" "}
-                  of <span className="font-bold text-[#001439]">{alumniData.length}</span>{" "}
-                  entries
-                </span>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1 text-sm border border-[#dbeaff] rounded hover:bg-[#f6f9fe] disabled:opacity-50">
-                    Previous
-                  </button>
-                  <button className="px-3 py-1 text-sm border border-[#dbeaff] rounded hover:bg-[#f6f9fe] bg-[#001145] text-white">
-                    1
-                  </button>
-                  <button className="px-3 py-1 text-sm border border-[#dbeaff] rounded hover:bg-[#f6f9fe]">
-                    2
-                  </button>
-                  <button className="px-3 py-1 text-sm border border-[#dbeaff] rounded hover:bg-[#f6f9fe]">
-                    Next
-                  </button>
+            {/* Map Tab */}
+            {activeTab === "map" && (
+              <div className="space-y-6">
+                {/* Map Filters */}
+                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-2xl border border-[#e4f0ff] shadow-lg">
+                  <div className="flex items-center gap-6 flex-wrap">
+                    <div className="flex items-center gap-2 text-[#001145] font-semibold">
+                      <Filter size={18} />
+                      Filter Map
+                    </div>
+                    <div className="flex gap-4 flex-wrap">
+                      <select
+                        className="px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-xl text-sm text-[#4a5f7c] focus:outline-none focus:border-[#0066FF] transition-colors"
+                        value={mapFilter.company}
+                        onChange={(e) => setMapFilter({ ...mapFilter, company: e.target.value })}
+                      >
+                        {uniqueCompanies.map((c) => (
+                          <option key={c} value={c}>
+                            {c === "All" ? "All Companies" : c}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        className="px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-xl text-sm text-[#4a5f7c] focus:outline-none focus:border-[#0066FF] transition-colors"
+                        value={mapFilter.batch}
+                        onChange={(e) => setMapFilter({ ...mapFilter, batch: e.target.value })}
+                      >
+                        {uniqueBatches.map((b) => (
+                          <option key={b} value={b}>
+                            {b === "All" ? "All Batches" : `Batch ${b}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="ml-auto text-sm text-[#7088aa]">
+                      Showing <span className="font-bold text-[#001145]">{filteredMapData.length}</span> alumni
+                    </div>
+                  </div>
+                </div>
+
+                {/* Full Map */}
+                <div className="bg-white rounded-3xl border border-[#e4f0ff] shadow-xl overflow-hidden">
+                  <div className="p-6 border-b border-[#e4f0ff]">
+                    <h2 className="text-xl font-bold text-[#001145] flex items-center gap-3">
+                      <Globe className="text-[#0066FF]" />
+                      See where our alumni work — get inspired
+                    </h2>
+                    <p className="text-[#7088aa] text-sm mt-1">
+                      Click on markers to view alumni details
+                    </p>
+                  </div>
+                  <div className="h-[600px]">
+                    <AlumniMapComponent alumni={filteredMapData} />
+                  </div>
+                  <div className="p-4 bg-[#f6f9fe] border-t border-[#e4f0ff] text-center">
+                    <p className="text-xs text-[#7088aa]">
+                      🔒 Privacy: Only alumni who have opted in are shown on the map
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Charts Tab */}
+            {activeTab === "charts" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Top Companies */}
+                  <ChartCard title="Top Hiring Companies" icon={Building2}>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={analytics.topCompanies} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" />
+                        <XAxis type="number" stroke="#7088aa" />
+                        <YAxis dataKey="name" type="category" stroke="#7088aa" width={100} />
+                        <Tooltip
+                          contentStyle={{
+                            background: "white",
+                            border: "1px solid #e4f0ff",
+                            borderRadius: "12px",
+                          }}
+                        />
+                        <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                          {analytics.topCompanies.map((_, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  {/* Degree Distribution */}
+                  <ChartCard title="Degree Distribution" icon={GraduationCap}>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <PieChart>
+                        <Pie
+                          data={analytics.degrees}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={120}
+                          label
+                        >
+                          {analytics.degrees.map((_, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  {/* Top Cities */}
+                  <ChartCard title="Top Alumni Locations" icon={MapPin}>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart data={analytics.topCities}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" />
+                        <XAxis dataKey="name" stroke="#7088aa" />
+                        <YAxis stroke="#7088aa" />
+                        <Tooltip
+                          contentStyle={{
+                            background: "white",
+                            border: "1px solid #e4f0ff",
+                            borderRadius: "12px",
+                          }}
+                        />
+                        <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                          {analytics.topCities.map((_, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={CHART_COLORS[index % CHART_COLORS.length]}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  {/* Alumni Growth Over Time */}
+                  <ChartCard title="Alumni Growth Trend" icon={TrendingUp}>
+                    <ResponsiveContainer width="100%" height={320}>
+                      <LineChart data={analytics.gradTrends}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" />
+                        <XAxis dataKey="year" stroke="#7088aa" />
+                        <YAxis stroke="#7088aa" />
+                        <Tooltip
+                          contentStyle={{
+                            background: "white",
+                            border: "1px solid #e4f0ff",
+                            borderRadius: "12px",
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="count"
+                          stroke="#0066FF"
+                          strokeWidth={3}
+                          dot={{ fill: "#0066FF", strokeWidth: 2, r: 6 }}
+                          activeDot={{ r: 8, fill: "#001145" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
     </PageLayout>
+  );
+}
+
+// Stat Card Component
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  trend,
+  subLabel,
+  color,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string | number;
+  trend?: string;
+  subLabel?: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-[#e4f0ff] shadow-lg hover:shadow-xl transition-all p-6 group">
+      <div className="flex items-start justify-between">
+        <div
+          className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
+        >
+          <Icon className="h-7 w-7 text-white" />
+        </div>
+        {trend && (
+          <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+            {trend}
+          </span>
+        )}
+      </div>
+      <div className="mt-4">
+        <p className="text-sm text-[#7088aa] font-medium">{label}</p>
+        <p className="text-3xl font-bold text-[#001145] mt-1">{value}</p>
+        {subLabel && <p className="text-xs text-[#a8bdda] mt-1">{subLabel}</p>}
+      </div>
+    </div>
+  );
+}
+
+// Chart Card Component
+function ChartCard({
+  title,
+  icon: Icon,
+  children,
+  fullWidth,
+}: {
+  title: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+  fullWidth?: boolean;
+}) {
+  return (
+    <div
+      className={`bg-white rounded-2xl border border-[#e4f0ff] shadow-lg p-6 ${
+        fullWidth ? "col-span-full" : ""
+      }`}
+    >
+      <div className="flex items-center gap-3 mb-6">
+        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#0066FF] to-[#00C9A7] flex items-center justify-center">
+          <Icon className="h-5 w-5 text-white" />
+        </div>
+        <h3 className="text-lg font-bold text-[#001145]">{title}</h3>
+      </div>
+      {children}
+    </div>
   );
 }
