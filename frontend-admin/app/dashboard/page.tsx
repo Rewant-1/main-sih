@@ -5,6 +5,7 @@ import { useAuthStore, useUsersStore } from "@/lib/stores";
 import AnalyticsDashboard from "@/components/dashboard/AnalyticsDashboard";
 import TopSkillsChart from "@/components/dashboard/TopSkillsChart";
 import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
+import Header from "@/components/dashboard/Header";
 
 export default function DashboardPage() {
   const { alumni, fetchAlumni } = useUsersStore();
@@ -18,28 +19,28 @@ export default function DashboardPage() {
   // Calculate analytics metrics
   const totalAlumni = alumni.length;
   const verifiedAlumni = alumni.filter((a) => a.verified).length;
-  
+
   // Calculate profile completion (simple heuristic based on filled fields)
-  const profileCompletion = alumni.length > 0 
+  const profileCompletion = alumni.length > 0
     ? alumni.reduce((acc, a) => {
-        let completedFields = 0;
-        const totalFields = 10;
-        // handle nested user info (userId may be a string or User object)
-        const u = (a as any).userId || {};
-        const getField = (key: string) => (a as any)[key] ?? (u as any)[key];
-        if (getField('name')) completedFields++;
-        if (getField('email')) completedFields++;
-        if (getField('department')) completedFields++;
-        if (getField('graduationYear')) completedFields++;
-        if (getField('currentCompany')) completedFields++;
-        if (getField('jobTitle')) completedFields++;
-        if (getField('location')) completedFields++;
-        const skills = getField('skills') || [];
-        if (Array.isArray(skills) && skills.length > 0) completedFields++;
-        if (getField('bio')) completedFields++;
-        if (getField('linkedIn') || getField('github')) completedFields++;
-        return acc + (completedFields / totalFields * 100);
-      }, 0) / alumni.length
+      let completedFields = 0;
+      const totalFields = 10;
+      // handle nested user info (userId may be a string or User object)
+      const u = (a as any).userId || {};
+      const getField = (key: string) => (a as any)[key] ?? (u as any)[key];
+      if (getField('name')) completedFields++;
+      if (getField('email')) completedFields++;
+      if (getField('department')) completedFields++;
+      if (getField('graduationYear')) completedFields++;
+      if (getField('currentCompany')) completedFields++;
+      if (getField('jobTitle')) completedFields++;
+      if (getField('location')) completedFields++;
+      const skills = getField('skills') || [];
+      if (Array.isArray(skills) && skills.length > 0) completedFields++;
+      if (getField('bio')) completedFields++;
+      if (getField('linkedIn') || getField('github')) completedFields++;
+      return acc + (completedFields / totalFields * 100);
+    }, 0) / alumni.length
     : 0;
 
   // Calculate employment rate (alumni with currentCompany filled)
@@ -49,30 +50,8 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-800 flex flex-col">
-      {/* Header */}
-      <header className="flex justify-between items-center px-6 py-2 border-b border-gray-100 bg-white">
-        <div className="flex items-center gap-3">
-          <img
-            src="/fot_logo.png"
-            alt="Faculty of Technology Logo"
-            className="h-14 object-contain"
-          />
-        </div>
-        <div className="flex items-center gap-4">
-          <button title="Notifications" className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </button>
-          <button title="User Profile" className="p-1 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
-            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-          </button>
-        </div>
-      </header>
+      {/* Header with Language Switcher */}
+      <Header />
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center w-full mt-8">
@@ -104,7 +83,7 @@ export default function DashboardPage() {
 
         {/* Analytics Dashboard with Real Data */}
         <div className="w-full mt-10 mb-18 px-4 sm:px-6 lg:px-8">
-          <AnalyticsDashboard 
+          <AnalyticsDashboard
             totalAlumni={totalAlumni}
             verifiedAlumni={verifiedAlumni}
             profileCompletion={profileCompletion}
@@ -116,7 +95,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-      
+
       {/* Footer */}
       <footer className="w-full py-4 flex justify-center items-center bg-white border-t border-[#dbeaff]">
         <p className="text-[#001145] font-bold text-[11px] tracking-wide opacity-40">
