@@ -52,20 +52,22 @@ export default function AlumniPage() {
     const user = a.userId as { name?: string; email?: string; phone?: string } | undefined;
     const name = user?.name || "";
     const email = user?.email || "";
-    const phone = user?.phone || "";
+    const phone = user?.phone || a.phone || "";
 
-    // Search filter
+    // Search filter - also search by company and designation
     const matchesSearch =
       name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       phone.includes(searchTerm) ||
-      a.graduationYear.toString().includes(searchTerm);
+      a.graduationYear.toString().includes(searchTerm) ||
+      (a.currentCompany?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+      (a.designation?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
 
-    // Degree filter - Alumni type doesn't have degree field
-    const matchesDegree = !filters.degree;
+    // Degree filter - now uses new degree field
+    const matchesDegree = !filters.degree || a.degree === filters.degree;
 
-    // Department filter - Alumni type doesn't have department field
-    const matchesDepartment = !filters.department;
+    // Department filter - now uses new department field
+    const matchesDepartment = !filters.department || a.department === filters.department;
 
     // Batch filter
     const matchesBatch = !filters.batch || a.graduationYear.toString() === filters.batch;
@@ -89,43 +91,110 @@ export default function AlumniPage() {
     }
   };
 
-  // Export to Excel
-  const handleExportExcel = () => {
-    toast.success("Preparing Excel file...");
-    // Implementation would go here
+  // Export to Excel - connected to backend
+  const handleExportExcel = async () => {
+    try {
+      toast.info("Preparing Excel file...");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/analytics/export?format=excel`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `alumni_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Excel file downloaded!");
+    } catch {
+      toast.error("Failed to export Excel. Please try again.");
+    }
   };
 
-  // Export to PDF
-  const handleExportPDF = () => {
-    toast.success("Preparing PDF file...");
-    // Implementation would go here
+  // Export to PDF - connected to backend
+  const handleExportPDF = async () => {
+    try {
+      toast.info("Preparing PDF file...");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/analytics/export?format=pdf`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      if (!response.ok) throw new Error('Export failed');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `alumni_export_${new Date().toISOString().split('T')[0]}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF file downloaded!");
+    } catch {
+      toast.error("Failed to export PDF. Please try again.");
+    }
   };
 
-  // Download sample CSV
+  // Download sample CSV - enhanced with all new fields
   const handleDownloadSample = () => {
-    const csvContent = `Name,Phone,Email,Degree,Department,Graduation Year,Enrollment No
-John Doe,9876543210,john@example.com,Bachelor of Technology,Computer Engineering,2024,23293916001`;
+    const csvContent = `Name,Email,Phone,Degree,Department,Graduation Year,Enrollment No,Current Company,Designation,LinkedIn,City,State
+Rahul Sharma,rahul.sharma@example.com,9876543210,B.Tech,Computer Science,2022,CSE2022001,Google,Software Engineer,https://linkedin.com/in/rahulsharma,Bangalore,Karnataka
+Priya Patel,priya.patel@example.com,9876543211,M.Tech,Electronics,2021,ECE2021002,Microsoft,Senior Developer,https://linkedin.com/in/priyapatel,Hyderabad,Telangana
+Amit Kumar,amit.kumar@example.com,9876543212,MBA,IT,2023,MBA2023003,Amazon,Product Manager,https://linkedin.com/in/amitkumar,Mumbai,Maharashtra`;
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "alumni_sample.csv";
+    a.download = "alumni_import_template.csv";
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Sample CSV downloaded");
+    toast.success("Sample CSV template downloaded");
   };
 
-  // Handle CSV upload
+  // Handle CSV upload - connected to bulk import API
   const handleUploadCSV = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".csv";
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
+    input.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
       if (file) {
-        toast.success(`Uploading ${file.name}...`);
-        // Implementation would go here
+        try {
+          toast.info(`Uploading ${file.name}...`);
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('importType', 'alumni');
+          
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/bulk-imports`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+            body: formData,
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            toast.success(`Upload successful! ${data.data.validRows} valid rows found. Processing...`);
+            // Trigger processing
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/bulk-imports/${data.data.importId}/process`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              },
+            });
+            // Refresh alumni list after a short delay
+            setTimeout(() => fetchAlumni(), 2000);
+          } else {
+            toast.error(data.message || 'Upload failed');
+          }
+        } catch {
+          toast.error("Failed to upload CSV. Please check the file format.");
+        }
       }
     };
     input.click();
@@ -241,9 +310,9 @@ John Doe,9876543210,john@example.com,Bachelor of Technology,Computer Engineering
             <ChevronDown size={16} className="text-[#7088aa] cursor-pointer" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Search Bar */}
-            <div className="relative">
+            <div className="relative md:col-span-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#a8bdda]" size={18} />
               <input
                 type="text"
@@ -253,6 +322,42 @@ John Doe,9876543210,john@example.com,Bachelor of Technology,Computer Engineering
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
+            {/* Degree Filter */}
+            <select
+              className="w-full px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] appearance-none cursor-pointer"
+              value={filters.degree}
+              onChange={(e) => setFilters({ ...filters, degree: e.target.value })}
+              aria-label="Filter by degree"
+            >
+              <option value="">All Degrees</option>
+              <option value="B.Tech">B.Tech</option>
+              <option value="M.Tech">M.Tech</option>
+              <option value="MBA">MBA</option>
+              <option value="BBA">BBA</option>
+              <option value="B.Sc">B.Sc</option>
+              <option value="M.Sc">M.Sc</option>
+              <option value="Ph.D">Ph.D</option>
+              <option value="Other">Other</option>
+            </select>
+
+            {/* Department Filter */}
+            <select
+              className="w-full px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-lg text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] appearance-none cursor-pointer"
+              value={filters.department}
+              onChange={(e) => setFilters({ ...filters, department: e.target.value })}
+              aria-label="Filter by department"
+            >
+              <option value="">All Departments</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Electronics">Electronics</option>
+              <option value="Mechanical">Mechanical</option>
+              <option value="Civil">Civil</option>
+              <option value="Chemical">Chemical</option>
+              <option value="Electrical">Electrical</option>
+              <option value="IT">IT</option>
+              <option value="Other">Other</option>
+            </select>
 
             {/* Status Filter */}
             <select

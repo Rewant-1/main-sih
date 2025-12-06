@@ -35,9 +35,9 @@ export const authApi = {
     api.post<AuthResponse>('/auth/register/alumni', data),
   
   verifyAlumni: (alumniId: string) =>
-    api.post<ApiResponse<Alumni>>(`/auth/verify/${alumniId}`, {}, {
-      headers: { 'x-internal-api-key': process.env.NEXT_PUBLIC_INTERNAL_API_KEY || '' }
-    }),
+    // Use authenticated admin token (Authorization header via api-client)
+    // Do not send an internal API key from the browser (security risk)
+    api.post<ApiResponse<Alumni>>(`/auth/verify/${alumniId}`),
 };
 
 // Users API

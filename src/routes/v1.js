@@ -1,5 +1,6 @@
 const express = require('express');
 const authRoutes = require('./routes.auth');
+const adminRoutes = require('./routes.admin');
 const studentRoutes = require('./routes.student');
 const connectionRoutes = require('./routes.connection');
 const alumniRoutes = require('./routes.alumni');
@@ -26,6 +27,7 @@ const v1 = express.Router();
 v1.get('/ping', (req, res) => res.json({ success: true, message: 'pong' }));
 
 v1.use('/auth', authRoutes);
+v1.use('/admins', adminRoutes);
 v1.use('/students', studentRoutes);
 v1.use('/connections', connectionRoutes);
 v1.use('/alumni', alumniRoutes);

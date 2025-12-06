@@ -33,6 +33,16 @@ export interface RegisterStudentData {
 }
 
 // Alumni Types
+export interface AlumniLocation {
+  city?: string;
+  state?: string;
+  country?: string;
+  coordinates?: {
+    lat?: number;
+    lng?: number;
+  };
+}
+
 export interface Alumni {
   _id: string;
   userId: string | User;
@@ -40,6 +50,26 @@ export interface Alumni {
   graduationYear: number;
   degreeUrl: string;
   skills: string[];
+  // Academic details
+  degree?: 'B.Tech' | 'M.Tech' | 'MBA' | 'BBA' | 'B.Sc' | 'M.Sc' | 'Ph.D' | 'Other';
+  department?: 'Computer Science' | 'Electronics' | 'Mechanical' | 'Civil' | 'Chemical' | 'Electrical' | 'IT' | 'Other';
+  enrollmentNumber?: string;
+  // Employment details
+  employmentStatus?: 'employed' | 'self-employed' | 'freelancer' | 'student' | 'unemployed' | 'retired';
+  currentCompany?: string;
+  designation?: string;
+  industry?: string;
+  // Social links
+  linkedIn?: string;
+  github?: string;
+  twitter?: string;
+  portfolio?: string;
+  // Location
+  location?: AlumniLocation;
+  // Contact
+  phone?: string;
+  // Profile tracking
+  profileCompletion?: number;
 }
 
 export interface AlumniWithUser extends Omit<Alumni, 'userId'> {
