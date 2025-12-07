@@ -3,7 +3,7 @@ import api from './api-client';
 // Auth API
 export const authApi = {
   login: (credentials) =>
-    api.post('/auth/login', credentials),
+    api.post('/admin/auth/login', credentials),
 
   registerAlumni: (data) =>
     api.post('/auth/register/alumni', data),
