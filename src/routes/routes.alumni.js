@@ -7,5 +7,6 @@ router.get("/", alumniController.getAlumni);
 router.get("/:id", alumniController.getAlumniById);
 router.put("/:id", alumniController.updateAlumni);
 router.post("/:id/verify", authenticateToken, checkRole("Admin"), alumniController.verifyAlumni);
+router.post("/bulk-create", authenticateToken, checkRole("Admin"), alumniController.createAlumni);
 
 module.exports = router;

@@ -220,9 +220,10 @@ const jobSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
-    collegeId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "admins"
+    adminId: {
+        type: String,
+        required: true,
+        index: true
     },
 
     // Categorization

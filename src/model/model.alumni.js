@@ -6,6 +6,12 @@ const alumniSchema = new mongoose.Schema({
         ref: "User",
         required: true,
     },
+    // adminId: Links alumni to college (for quick filtering)
+    adminId: {
+        type: String,
+        required: true,
+        index: true,
+    },
     verified: {
         type: Boolean,
         default: false,
@@ -222,9 +228,11 @@ alumniSchema.pre('save', function (next) {
 
 // Indexes for performance optimization
 alumniSchema.index({ userId: 1 }); // Unique user lookup
+alumniSchema.index({ adminId: 1 }); // College filtering
 alumniSchema.index({ verified: 1 }); // Filter verified alumni
 alumniSchema.index({ graduationYear: 1 }); // Filter by batch
 alumniSchema.index({ department: 1 }); // Filter by department
+alumniSchema.index({ adminId: 1, verified: 1 }); // Verified per college
 alumniSchema.index({ graduationYear: 1, department: 1 }); // Compound index
 alumniSchema.index({ 'location.city': 1, 'location.state': 1 }); // Search by location
 alumniSchema.index({ skills: 1 }); // Search by skills

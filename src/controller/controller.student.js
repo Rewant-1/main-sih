@@ -6,7 +6,7 @@ const studentModel = require("../model/model.student.js");
 
 const getStudents = async (req, res) => {
     try {
-        const students = await StudentService.getStudents();
+        const students = await StudentService.getStudents(req.admin.adminId);
         res.status(200).json({ success: true, data: students });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -15,7 +15,7 @@ const getStudents = async (req, res) => {
 
 const getStudentById = async (req, res) => {
     try {
-        const student = await StudentService.getStudentById(req.params.id);
+        const student = await StudentService.getStudentById(req.params.id, req.admin.adminId);
         if (student) {
             res.status(200).json({ success: true, data: student });
         } else {
@@ -30,7 +30,8 @@ const updateStudent = async (req, res) => {
     try {
         const student = await StudentService.updateStudent(
             req.params.id,
-            req.body
+            req.body,
+            req.admin.adminId
         );
         if (student) {
             res.status(200).json({ success: true, data: student });
@@ -91,6 +92,7 @@ const createStudents = async (req, res) => {
                         email: studentData.email,
                         passwordHash: hashedPassword,
                         userType: "Student",
+                        adminId: req.admin.adminId,
                     },
                 ],
                 { session }
@@ -100,6 +102,7 @@ const createStudents = async (req, res) => {
                 [
                     {
                         userId: user._id,
+                        adminId: req.admin.adminId,
                         academic: studentData.academic,
                     },
                 ],
