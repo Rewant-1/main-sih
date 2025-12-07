@@ -133,7 +133,7 @@ const login = async (req, res) => {
             return res.status(401).json({ success: false, error: "Invalid email or password." });
         }
 
-        const token = jwt.sign({ userId: user._id, userType: user.userType }, process.env.JWT_SECRET);
+        const token = jwt.sign({ userId: user._id, userType: user.userType }, process.env.JWT_SECRET, { expiresIn: '7d' });
         const sanitizedUser = {
             _id: user._id,
             name: user.name,
@@ -151,12 +151,12 @@ const login = async (req, res) => {
 
 const registerAdmin = async (req, res) => {
     const { name, email, password, adminType, address, phone, bio } = req.body;
-    
+
     // Validate required fields
     if (!name || !email || !password || !address?.street || !address?.city || !address?.state || !phone) {
-        return res.status(400).json({ 
-            success: false, 
-            error: "Name, email, password, address (street, city, state), and phone are required." 
+        return res.status(400).json({
+            success: false,
+            error: "Name, email, password, address (street, city, state), and phone are required."
         });
     }
 
@@ -252,7 +252,7 @@ const verifyAlumni = async (req, res) => {
 const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
-        
+
         if (!email || !password) {
             return res.status(400).json({
                 success: false,

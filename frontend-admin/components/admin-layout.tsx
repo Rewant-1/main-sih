@@ -53,6 +53,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import api from "@/lib/api-client";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -169,6 +170,12 @@ const settingsItems = [
 function MobileNav() {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+  const { logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = "/login";
+  };
 
   const allNavItems = [
     { label: "Main Menu", items: navigationItems },
@@ -208,8 +215,8 @@ function MobileNav() {
                         href={item.href}
                         onClick={() => setOpen(false)}
                         className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${pathname === item.href
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted"
                           }`}
                       >
                         <item.icon className="h-4 w-4" />
@@ -230,7 +237,7 @@ function MobileNav() {
                 <p className="text-sm font-medium">Admin User</p>
                 <p className="text-xs text-muted-foreground">admin@alumni.com</p>
               </div>
-              <Button variant="ghost" size="icon" className="text-destructive">
+              <Button variant="ghost" size="icon" className="text-destructive" onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -243,6 +250,12 @@ function MobileNav() {
 
 function AppSidebar() {
   const pathname = usePathname();
+  const { logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = "/login";
+  };
 
   return (
     <Sidebar>
@@ -347,7 +360,7 @@ function AppSidebar() {
               <Settings className="mr-2 h-4 w-4" />
               Account Settings
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>

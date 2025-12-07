@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Bell, User } from "lucide-react";
+import { Bell, User, LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuthStore } from "@/lib/stores/auth-store";
 
 const languages = [
   { code: "en", label: "A" },
@@ -12,6 +19,7 @@ const languages = [
 const Header: React.FC = () => {
   // SSR always loads "en" → no mismatch
   const [active, setActive] = useState("en");
+  const { logout } = useAuthStore();
 
   // After hydration, update based on localStorage
   useEffect(() => {
@@ -28,6 +36,11 @@ const Header: React.FC = () => {
 
     setActive(lang);
     localStorage.setItem("lang", lang);
+  };
+
+  const handleLogout = () => {
+    logout();
+    window.location.href = "/login";
   };
 
   return (
@@ -63,16 +76,27 @@ const Header: React.FC = () => {
           ))}
         </div>
 
-        {/* Icons */}
+        {/* Notifications */}
         <button className="p-2 text-gray-500 hover:text-gray-700 transition-colors">
           <Bell size={24} />
         </button>
 
-        <button className="p-1 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
-          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-            <User size={24} className="text-gray-400" />
-          </div>
-        </button>
+        {/* User Dropdown with Logout */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-1 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
+              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <User size={24} className="text-gray-400" />
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
       </div>
     </header>
@@ -80,3 +104,4 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+
