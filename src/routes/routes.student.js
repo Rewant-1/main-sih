@@ -10,6 +10,6 @@ router.use(verifyAdmin);
 router.get("/", studentController.getStudents);
 router.get("/:id", studentController.getStudentById);
 router.put("/:id", studentController.updateStudent);
-router.post("/bulk-create", checkRole("Admin"), studentController.createStudents);
+router.post("/bulk-create", studentController.createStudents);
 
 module.exports = router;
