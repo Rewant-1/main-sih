@@ -10,9 +10,9 @@ const createEvent = async (eventData) => {
   }
 };
 
-const getEvents = async () => {
+const getEvents = async (adminId) => {
   try {
-    const events = await Event.find()
+    const events = await Event.find({ adminId })
       .populate("createdBy", "name email")
       .populate("registeredUsers", "name email")
       .sort({ date: 1 });
@@ -22,9 +22,9 @@ const getEvents = async () => {
   }
 };
 
-const getEventById = async (eventId) => {
+const getEventById = async (eventId, adminId) => {
   try {
-    const event = await Event.findById(eventId)
+    const event = await Event.findOne({ _id: eventId, adminId })
       .populate("createdBy", "name email")
       .populate("registeredUsers", "name email");
     return event;
@@ -33,20 +33,22 @@ const getEventById = async (eventId) => {
   }
 };
 
-const updateEvent = async (eventId, eventData) => {
+const updateEvent = async (eventId, eventData, adminId) => {
   try {
-    const updatedEvent = await Event.findByIdAndUpdate(eventId, eventData, {
-      new: true,
-    });
+    const updatedEvent = await Event.findOneAndUpdate(
+      { _id: eventId, adminId },
+      eventData,
+      { new: true }
+    );
     return updatedEvent;
   } catch (error) {
     throw error;
   }
 };
 
-const deleteEvent = async (eventId) => {
+const deleteEvent = async (eventId, adminId) => {
   try {
-    const deletedEvent = await Event.findByIdAndDelete(eventId);
+    const deletedEvent = await Event.findOneAndDelete({ _id: eventId, adminId });
     return deletedEvent;
   } catch (error) {
     throw error;

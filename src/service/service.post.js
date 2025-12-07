@@ -10,38 +10,40 @@ const createPost = async (postData) => {
   }
 };
 
-const getPosts = async () => {
+const getPosts = async (adminId) => {
   try {
-    const posts = await Post.find().populate("postedBy").populate("likes").populate("comments.user");
+    const posts = await Post.find({ adminId }).populate("postedBy").populate("likes").populate("comments.user");
     return posts;
   } catch (error) {
     throw error;
   }
 };
 
-const getPostById = async (postId) => {
+const getPostById = async (postId, adminId) => {
   try {
-    const post = await Post.findById(postId).populate("postedBy").populate("likes").populate("comments.user");
+    const post = await Post.findOne({ _id: postId, adminId }).populate("postedBy").populate("likes").populate("comments.user");
     return post;
   } catch (error) {
     throw error;
   }
 };
 
-const updatePost = async (postId, postData) => {
+const updatePost = async (postId, postData, adminId) => {
   try {
-    const updatedPost = await Post.findByIdAndUpdate(postId, postData, {
-      new: true,
-    });
+    const updatedPost = await Post.findOneAndUpdate(
+      { _id: postId, adminId },
+      postData,
+      { new: true }
+    );
     return updatedPost;
   } catch (error) {
     throw error;
   }
 };
 
-const deletePost = async (postId) => {
+const deletePost = async (postId, adminId) => {
   try {
-    const deletedPost = await Post.findByIdAndDelete(postId);
+    const deletedPost = await Post.findOneAndDelete({ _id: postId, adminId });
     return deletedPost;
   } catch (error) {
     throw error;

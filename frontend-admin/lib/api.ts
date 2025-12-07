@@ -57,6 +57,37 @@ export const alumniApi = {
     api.put<ApiResponse<Alumni>>(`/alumni/${id}`, data),
   verify: (alumniId: string) =>
     api.post<ApiResponse<Alumni>>(`/alumni/${alumniId}/verify`),
+  bulkCreate: (alumni: Partial<Alumni>[]) =>
+    api.post<ApiResponse<{ created: number; failed: unknown[] }>>('/alumni/bulk-create', { alumni }),
+};
+
+// Admin API
+export const adminApi = {
+  getAdminNames: () => api.get<ApiResponse<{ name: string; id: string; email?: string }[]>>('/admins/names'),
+  getById: (id: string) => api.get<ApiResponse<unknown>>(`/admins/${id}`),
+  update: (id: string, data: Partial<unknown>) =>
+    api.put<ApiResponse<unknown>>(`/admins/${id}`, data),
+  delete: (id: string) => api.delete<ApiResponse<void>>(`/admins/${id}`),
+  // Admin creates users (Student/Alumni)
+  createUser: (data: { 
+    name: string; 
+    email: string; 
+    password: string; 
+    userType: 'Student' | 'Alumni'; 
+    phone?: string; 
+    bio?: string;
+    graduationYear?: number;
+    degreeUrl?: string;
+    academic?: { degreeType: string; degreeName: string; [key: string]: unknown };
+  }) => api.post<ApiResponse<{ userId: string; profileId: string }>>('/admins/users', data),
+  updateUser: (id: string, data: Partial<{ name: string; phone: string }>) =>
+    api.put<ApiResponse<User>>(`/admins/users/${id}`, data),
+  deleteUser: (id: string) => api.delete<ApiResponse<void>>(`/admins/users/${id}`),
+  // Award Moksha coins and tags
+  awardMokshaCoins: (data: { userId: string; coins: number }) =>
+    api.post<ApiResponse<{ userId: string; totalCoins: number }>>('/admins/award-moksha', data),
+  awardTag: (data: { userId: string; tagName: string }) =>
+    api.post<ApiResponse<{ userId: string; tags: unknown[] }>>('/admins/award-tag', data),
 };
 
 // Students API

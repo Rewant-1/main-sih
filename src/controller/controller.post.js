@@ -4,7 +4,8 @@ const createPost = async (req, res) => {
   try {
     const postData = {
       ...req.body,
-      author: req.user?.userId || req.body.author
+      author: req.user?.userId || req.body.author,
+      adminId: req.admin.adminId
     };
     const post = await PostService.createPost(postData);
     res.status(201).json({ success: true, data: post });
@@ -15,7 +16,7 @@ const createPost = async (req, res) => {
 
 const getPosts = async (req, res) => {
   try {
-    const posts = await PostService.getPosts();
+    const posts = await PostService.getPosts(req.admin.adminId);
     res.status(200).json({ success: true, data: posts });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -24,7 +25,7 @@ const getPosts = async (req, res) => {
 
 const getPostById = async (req, res) => {
   try {
-    const post = await PostService.getPostById(req.params.id);
+    const post = await PostService.getPostById(req.params.id, req.admin.adminId);
     if (post) {
       res.status(200).json({ success: true, data: post });
     } else {
@@ -37,7 +38,7 @@ const getPostById = async (req, res) => {
 
 const updatePost = async (req, res) => {
   try {
-    const post = await PostService.updatePost(req.params.id, req.body);
+    const post = await PostService.updatePost(req.params.id, req.body, req.admin.adminId);
     if (post) {
       res.status(200).json({ success: true, data: post });
     } else {

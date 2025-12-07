@@ -1,5 +1,6 @@
 const express = require('express');
 const authRoutes = require('./routes.auth');
+const adminAuthRoutes = require('./routes.adminAuth');
 const adminRoutes = require('./routes.admin');
 const studentRoutes = require('./routes.student');
 const connectionRoutes = require('./routes.connection');
@@ -26,7 +27,11 @@ const v1 = express.Router();
 // Simple health check for API and dev/local debugging
 v1.get('/ping', (req, res) => res.json({ success: true, message: 'pong' }));
 
-v1.use('/auth', authRoutes);
+// Auth routes
+v1.use('/auth', authRoutes); // Student/Alumni auth
+v1.use('/admin/auth', adminAuthRoutes); // Admin-only auth
+
+// Admin routes
 v1.use('/admins', adminRoutes);
 v1.use('/students', studentRoutes);
 v1.use('/connections', connectionRoutes);

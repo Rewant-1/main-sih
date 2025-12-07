@@ -6,6 +6,14 @@ const studentSchema = new mongoose.Schema({
         ref: "User",
         required: true,
     },
+    // adminId: Links student to college (for quick filtering)
+    adminId: {
+        type: String,
+        required: true,
+        index: true,
+    },
+    // Optional student identifier (kept to align with other services)
+    student_id: { type: String },
     academic: {
         entryDate: { type: Date, default: Date.now },
         expectedGraduationDate: { type: Date },
@@ -19,6 +27,10 @@ const studentSchema = new mongoose.Schema({
         currentYear: { type: Number, default: 1 },
     },
 });
+
+// Indexes
+studentSchema.index({ userId: 1 }); // User lookup
+studentSchema.index({ adminId: 1 }); // College filtering
 
 const StudentModel = mongoose.model("Student", studentSchema);
 

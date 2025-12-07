@@ -8,6 +8,11 @@ const postSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
   },
+  adminId: {
+    type: String,
+    required: true,
+    index: true
+  },
   likes: [
     {
       type: mongoose.Schema.Types.ObjectId,

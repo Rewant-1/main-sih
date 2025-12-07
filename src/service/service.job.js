@@ -14,6 +14,7 @@ const createJob = async (jobData) => {
 const getJobs = async (filters = {}) => {
     try {
         const query = {};
+        if (filters.adminId) query.adminId = filters.adminId;
         if (filters.status) query.status = filters.status;
         if (filters.type) query.type = filters.type;
         if (filters.company) query.company = new RegExp(filters.company, "i");
@@ -28,9 +29,9 @@ const getJobs = async (filters = {}) => {
     }
 };
 
-const getJobById = async (jobId) => {
+const getJobById = async (jobId, adminId) => {
     try {
-        const job = await Job.findById(jobId)
+        const job = await Job.findOne({ _id: jobId, adminId })
             .populate("postedBy", "name email")
             .populate("applicants.student", "name email");
         return job;
@@ -39,9 +40,13 @@ const getJobById = async (jobId) => {
     }
 };
 
-const updateJob = async (jobId, jobData) => {
+const updateJob = async (jobId, jobData, adminId) => {
     try {
-        const updatedJob = await Job.findByIdAndUpdate(jobId, { ...jobData, updatedAt: Date.now() }, { new: true });
+        const updatedJob = await Job.findOneAndUpdate(
+            { _id: jobId, adminId },
+            { ...jobData, updatedAt: Date.now() },
+            { new: true }
+        );
         return updatedJob;
     } catch (error) {
         throw error;
