@@ -1,7 +1,10 @@
 const express = require('express');
-const authRoutes = require('./routes.auth');
+
+// Admin Auth only - no user auth for admin portal
 const adminAuthRoutes = require('./routes.adminAuth');
 const adminRoutes = require('./routes.admin');
+
+// Data routes - all require admin auth (enforced in route files)
 const studentRoutes = require('./routes.student');
 const connectionRoutes = require('./routes.connection');
 const alumniRoutes = require('./routes.alumni');
@@ -15,7 +18,8 @@ const campaignRoutes = require('./routes.campaign.js');
 const surveyRoutes = require('./routes.survey.js');
 const successStoryRoutes = require('./routes.successStory.js');
 const newsletterRoutes = require('./routes.newsletter.js');
-// New routes for Data Integrity & Analytics
+
+// Admin-specific routes
 const auditLogRoutes = require('./routes.auditLog.js');
 const bulkImportRoutes = require('./routes.bulkImport.js');
 const invitationRoutes = require('./routes.invitation.js');
@@ -24,15 +28,25 @@ const analyticsRoutes = require('./routes.analytics.js');
 
 const v1 = express.Router();
 
-// Simple health check for API and dev/local debugging
+// Health check - public
 v1.get('/ping', (req, res) => res.json({ success: true, message: 'pong' }));
 
-// Auth routes
-v1.use('/auth', authRoutes); // Student/Alumni auth
-v1.use('/admin/auth', adminAuthRoutes); // Admin-only auth
+// ============================================
+// ADMIN AUTHENTICATION
+// ============================================
+// Admin-only auth (login, register, password reset)
+v1.use('/admin/auth', adminAuthRoutes);
 
-// Admin routes
+// ============================================
+// ADMIN PROFILE MANAGEMENT
+// ============================================
 v1.use('/admins', adminRoutes);
+
+// ============================================
+// COLLEGE DATA ROUTES (All require admin auth)
+// Each route file applies verifyAdmin middleware
+// Data is automatically filtered by adminId
+// ============================================
 v1.use('/students', studentRoutes);
 v1.use('/connections', connectionRoutes);
 v1.use('/alumni', alumniRoutes);
@@ -46,7 +60,10 @@ v1.use('/campaigns', campaignRoutes);
 v1.use('/surveys', surveyRoutes);
 v1.use('/success-stories', successStoryRoutes);
 v1.use('/newsletters', newsletterRoutes);
-// New routes
+
+// ============================================
+// ADMIN TOOLS
+// ============================================
 v1.use('/audit-logs', auditLogRoutes);
 v1.use('/bulk-imports', bulkImportRoutes);
 v1.use('/invitations', invitationRoutes);

@@ -6,6 +6,12 @@ const activitySchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
+    // College Isolation
+    adminId: {
+        type: String,
+        required: true,
+        index: true
+    },
 
     // Activity type
     type: {
@@ -95,11 +101,10 @@ const ACTIVITY_POINTS = {
 };
 
 // Pre-save to add points
-activitySchema.pre('save', function (next) {
+activitySchema.pre('save', async function () {
     if (this.isNew && ACTIVITY_POINTS[this.type]) {
         this.points = ACTIVITY_POINTS[this.type];
     }
-    next();
 });
 
 // Static method to log activity

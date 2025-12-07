@@ -1,8 +1,11 @@
 const newsletterService = require('../service/service.newsletter');
 
+// All controllers now use req.admin.adminId for college isolation
+
 exports.getAll = async (req, res) => {
     try {
-        const result = await newsletterService.getAll(req.query);
+        const adminId = req.admin.adminId;
+        const result = await newsletterService.getAll(adminId, req.query);
         res.json({
             success: true,
             data: result
@@ -17,7 +20,8 @@ exports.getAll = async (req, res) => {
 
 exports.getById = async (req, res) => {
     try {
-        const newsletter = await newsletterService.getById(req.params.id);
+        const adminId = req.admin.adminId;
+        const newsletter = await newsletterService.getById(req.params.id, adminId);
         if (!newsletter) {
             return res.status(404).json({
                 success: false,
@@ -38,7 +42,8 @@ exports.getById = async (req, res) => {
 
 exports.create = async (req, res) => {
     try {
-        const newsletter = await newsletterService.create(req.body, req.user?.userId);
+        const adminId = req.admin.adminId;
+        const newsletter = await newsletterService.create(req.body, req.admin._id, adminId);
         res.status(201).json({
             success: true,
             data: newsletter
@@ -53,7 +58,8 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
     try {
-        const newsletter = await newsletterService.update(req.params.id, req.body);
+        const adminId = req.admin.adminId;
+        const newsletter = await newsletterService.update(req.params.id, req.body, adminId);
         if (!newsletter) {
             return res.status(404).json({
                 success: false,
@@ -74,7 +80,8 @@ exports.update = async (req, res) => {
 
 exports.delete = async (req, res) => {
     try {
-        const newsletter = await newsletterService.delete(req.params.id);
+        const adminId = req.admin.adminId;
+        const newsletter = await newsletterService.delete(req.params.id, adminId);
         if (!newsletter) {
             return res.status(404).json({
                 success: false,
@@ -95,6 +102,7 @@ exports.delete = async (req, res) => {
 
 exports.schedule = async (req, res) => {
     try {
+        const adminId = req.admin.adminId;
         const { scheduledAt } = req.body;
         if (!scheduledAt) {
             return res.status(400).json({
@@ -102,8 +110,8 @@ exports.schedule = async (req, res) => {
                 message: 'Scheduled date is required'
             });
         }
-        
-        const newsletter = await newsletterService.schedule(req.params.id, scheduledAt);
+
+        const newsletter = await newsletterService.schedule(req.params.id, scheduledAt, adminId);
         if (!newsletter) {
             return res.status(404).json({
                 success: false,
@@ -124,7 +132,8 @@ exports.schedule = async (req, res) => {
 
 exports.send = async (req, res) => {
     try {
-        const newsletter = await newsletterService.send(req.params.id);
+        const adminId = req.admin.adminId;
+        const newsletter = await newsletterService.send(req.params.id, adminId);
         res.json({
             success: true,
             data: newsletter,
@@ -140,7 +149,8 @@ exports.send = async (req, res) => {
 
 exports.getStats = async (req, res) => {
     try {
-        const stats = await newsletterService.getStats();
+        const adminId = req.admin.adminId;
+        const stats = await newsletterService.getStats(adminId);
         res.json({
             success: true,
             data: stats

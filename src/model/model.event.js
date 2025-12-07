@@ -32,7 +32,7 @@ const eventSchema = new mongoose.Schema({
 
   // Location
   venue: {
-    type: String
+    type: mongoose.Schema.Types.Mixed
   },
   address: {
     street: String,
@@ -52,7 +52,7 @@ const eventSchema = new mongoose.Schema({
   // Event type
   type: {
     type: String,
-    enum: ['online', 'offline', 'hybrid'],
+    enum: ['online', 'offline', 'hybrid', 'webinar', 'workshop', 'meetup', 'conference', 'cultural'],
     default: 'offline'
   },
   meetingLink: { // For online events
@@ -179,7 +179,7 @@ const eventSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['draft', 'pending', 'approved', 'rejected', 'cancelled', 'completed'],
+    enum: ['draft', 'pending', 'approved', 'rejected', 'cancelled', 'completed', 'upcoming'],
     default: 'draft'
   },
   approvedBy: {
@@ -192,7 +192,7 @@ const eventSchema = new mongoose.Schema({
   // Categorization
   category: {
     type: String,
-    enum: ['reunion', 'seminar', 'workshop', 'networking', 'cultural', 'sports', 'career', 'other'],
+    enum: ['reunion', 'seminar', 'workshop', 'networking', 'cultural', 'sports', 'career', 'technical', 'other'],
     default: 'other'
   },
   tags: [String],
@@ -232,15 +232,13 @@ const eventSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware
-eventSchema.pre('save', function (next) {
+eventSchema.pre('save', async function () {
   this.updatedAt = Date.now();
 
   // Update current registrations count
   if (this.registeredUsers) {
     this.currentRegistrations = this.registeredUsers.length;
   }
-
-  next();
 });
 
 // Virtual for available spots

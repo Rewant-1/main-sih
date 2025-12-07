@@ -1,16 +1,24 @@
 const JobService = require("../service/service.job.js");
 const JobModel = require("../model/model.job.js");
 
+// Helper to extract college ID (adminId) from request
+const getCollegeId = (req) => {
+    return req.admin?.adminId || req.user?.adminId;
+};
+
 const createJob = async (req, res) => {
     const { title, company, location, type, isOpen, description, skillsRequired } = req.body;
     if (!title || !company || !type) {
         return res.status(400).json({ success: false, message: "Title, Company, and Type are required fields." });
     }
     try {
-        const job = await JobService.createJob({ 
-            ...req.body, 
-            postedBy: req.user.userId,
-            adminId: req.admin.adminId 
+        const collegeId = getCollegeId(req);
+        if (!collegeId) return res.status(403).json({ success: false, message: "Unauthorized: No college ID found." });
+
+        const job = await JobService.createJob({
+            ...req.body,
+            postedBy: req.user?.userId || req.body.postedBy, // Admin or User
+            adminId: collegeId
         });
         res.status(201).json({ success: true, message: "Job created successfully.", data: job });
     } catch (error) {
@@ -21,8 +29,11 @@ const createJob = async (req, res) => {
 
 const getJobs = async (req, res) => {
     try {
+        const collegeId = getCollegeId(req);
+        if (!collegeId) return res.status(403).json({ success: false, message: "Unauthorized: No college ID found." });
+
         const { status, type, company } = req.query;
-        const filters = { adminId: req.admin.adminId };
+        const filters = { adminId: collegeId }; // Enforce isolation
         if (status) filters.status = status;
         if (type) filters.type = type;
         if (company) filters.company = company;
@@ -36,7 +47,10 @@ const getJobs = async (req, res) => {
 
 const getJobById = async (req, res) => {
     try {
-        const job = await JobService.getJobById(req.params.id, req.admin.adminId);
+        const collegeId = getCollegeId(req);
+        if (!collegeId) return res.status(403).json({ success: false, message: "Unauthorized: No college ID found." });
+
+        const job = await JobService.getJobById(req.params.id, collegeId);
         if (job) {
             res.status(200).json({ success: true, data: job });
         } else {
@@ -49,7 +63,10 @@ const getJobById = async (req, res) => {
 
 const updateJob = async (req, res) => {
     try {
-        const job = await JobService.updateJob(req.params.id, req.body, req.admin.adminId);
+        const collegeId = getCollegeId(req);
+        if (!collegeId) return res.status(403).json({ success: false, message: "Unauthorized: No college ID found." });
+
+        const job = await JobService.updateJob(req.params.id, req.body, collegeId);
         if (job) {
             res.status(200).json({ success: true, data: job });
         } else {
@@ -62,7 +79,10 @@ const updateJob = async (req, res) => {
 
 const deleteJob = async (req, res) => {
     try {
-        const job = await JobService.deleteJob(req.params.id);
+        const collegeId = getCollegeId(req);
+        if (!collegeId) return res.status(403).json({ success: false, message: "Unauthorized: No college ID found." });
+
+        const job = await JobService.deleteJob(req.params.id, collegeId);
         if (job) {
             res.status(200).json({ success: true, message: "Job deleted successfully" });
         } else {
@@ -75,13 +95,25 @@ const deleteJob = async (req, res) => {
 
 const applyToJob = async (req, res) => {
     try {
+        const collegeId = getCollegeId(req);
+        if (!collegeId) return res.status(403).json({ success: false, message: "Unauthorized: No college ID found." });
+
+        const studentId = req.user?.userId || req.body.studentId;
+
+        // Verify that job belongs to college? Service should handle this ideally, 
+        // but we pass collegeId if service method supports it or we verify here.
+        // For now, service.applyToJob might not accept adminId.
+        // To be safe, let's verify job existence with collegeId first.
+        const job = await JobModel.findOne({ _id: req.params.id, adminId: collegeId });
+        if (!job) return res.status(404).json({ success: false, message: "Job not found or access denied." });
+
         const applicantData = {
-            student: req.user?.userId || req.body.studentId,
+            student: studentId,
             coverLetter: req.body.coverLetter,
             resume: req.body.resume,
         };
-        const job = await JobService.applyToJob(req.params.id, applicantData);
-        res.status(200).json({ success: true, data: job });
+        const updatedJob = await JobService.applyToJob(req.params.id, applicantData);
+        res.status(200).json({ success: true, data: updatedJob });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -89,7 +121,17 @@ const applyToJob = async (req, res) => {
 
 const updateApplicationStatus = async (req, res) => {
     try {
+        // Typically Admin or PostedBy.
+        // We can check collegeId context.
+        const collegeId = getCollegeId(req);
+        if (!collegeId) return res.status(403).json({ success: false, message: "Unauthorized: No college ID found." });
+
         const { studentId, status } = req.body;
+
+        // Also verify isolation
+        const jobCheck = await JobModel.findOne({ _id: req.params.id, adminId: collegeId });
+        if (!jobCheck) return res.status(404).json({ success: false, message: "Job not found or access denied." });
+
         const job = await JobService.updateApplicationStatus(req.params.id, studentId, status);
         if (job) {
             res.status(200).json({ success: true, data: job });
@@ -103,7 +145,11 @@ const updateApplicationStatus = async (req, res) => {
 
 const getMyJobs = async (req, res) => {
     try {
-        const jobs = await JobService.getJobsByPostedBy(req.user.userId);
+        const userId = req.user?.userId || req.body.userId;
+        const collegeId = getCollegeId(req);
+        // We should ensure we only return jobs for this college (though userId usually implies it).
+        // Service.getJobsByPostedBy uses userId.
+        const jobs = await JobService.getJobsByPostedBy(userId);
         res.status(200).json({ success: true, data: jobs });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -112,6 +158,13 @@ const getMyJobs = async (req, res) => {
 
 const closeJobApplications = async (req, res) => {
     try {
+        const collegeId = getCollegeId(req);
+        if (!collegeId) return res.status(403).json({ success: false, message: "Unauthorized: No college ID found." });
+
+        // Verify isolation
+        const jobCheck = await JobModel.findOne({ _id: req.params.id, adminId: collegeId });
+        if (!jobCheck) return res.status(404).json({ success: false, message: "Job not found or access denied." });
+
         const job = await JobService.closeApplications(req.params.id);
         res.status(200).json({ success: true, data: job });
     } catch (error) {

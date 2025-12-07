@@ -33,6 +33,13 @@ const responseSchema = new mongoose.Schema({
 });
 
 const surveySchema = new mongoose.Schema({
+  // College Isolation - Required for multi-tenant support
+  adminId: {
+    type: String,
+    required: true,
+    index: true,
+  },
+
   title: { type: String, required: true, trim: true },
   description: { type: String, trim: true },
   coverImage: { type: String },

@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema({
+    // College Isolation - Required for multi-tenant support
+    adminId: {
+        type: String,
+        required: true,
+        index: true
+    },
+
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",

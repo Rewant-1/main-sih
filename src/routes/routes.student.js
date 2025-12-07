@@ -1,12 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const studentController = require("../controller/controller.student.js");
-const { authenticateToken, checkRole } = require("../middleware/middleware.auth.js");
-const { allowAdminOrInternal } = require("../middleware/middleware.adminAuth");
+const { verifyAdmin } = require("../middleware/middleware.adminAuth.js");
 
-// Require either an admin token or internal API key for student routes
-router.use(allowAdminOrInternal);
+// ALL routes require admin authentication for college isolation
+router.use(verifyAdmin);
 
+// Student routes - all protected by admin auth
 router.get("/", studentController.getStudents);
 router.get("/:id", studentController.getStudentById);
 router.put("/:id", studentController.updateStudent);

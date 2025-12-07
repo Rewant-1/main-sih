@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 
 const donationSchema = new mongoose.Schema({
+    // College Isolation - Required for multi-tenant support
+    adminId: {
+        type: String,
+        required: true,
+        index: true
+    },
+
     campaignId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Campaign",
@@ -107,9 +114,8 @@ const donationSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware
-donationSchema.pre('save', function (next) {
+donationSchema.pre('save', async function () {
     this.updatedAt = Date.now();
-    next();
 });
 
 // Index for queries

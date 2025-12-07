@@ -44,12 +44,10 @@ const alumniSchema = new mongoose.Schema({
     // Academic details (from frontend-admin original)
     degree: {
         type: String,
-        enum: ["B.Tech", "M.Tech", "MBA", "BBA", "B.Sc", "M.Sc", "Ph.D", "Other"],
         default: "B.Tech",
     },
     department: {
         type: String,
-        enum: ["Computer Science", "Electronics", "Mechanical", "Civil", "Chemical", "Electrical", "IT", "Other"],
         default: "Computer Science",
     },
     enrollmentNumber: {
@@ -221,9 +219,8 @@ const alumniSchema = new mongoose.Schema({
 });
 
 // Update the updatedAt field before saving
-alumniSchema.pre('save', function (next) {
+alumniSchema.pre('save', async function () {
     this.updatedAt = Date.now();
-    next();
 });
 
 // Indexes for performance optimization

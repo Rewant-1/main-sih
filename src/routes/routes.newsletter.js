@@ -1,14 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const newsletterController = require('../controller/controller.newsletter');
-const { protect, authorize } = require('../middleware/middleware.auth');
+const { verifyAdmin } = require('../middleware/middleware.adminAuth');
 
-// Public routes (none for newsletters)
+// ALL routes require admin authentication for college isolation
+router.use(verifyAdmin);
 
-// Protected routes - Admin only
-router.use(protect);
-router.use(authorize('admin'));
-
+// Newsletter routes - all protected by admin auth
 router.get('/stats', newsletterController.getStats);
 router.get('/', newsletterController.getAll);
 router.get('/:id', newsletterController.getById);

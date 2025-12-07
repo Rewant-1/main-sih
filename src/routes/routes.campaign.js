@@ -1,18 +1,19 @@
 const express = require("express");
 const router = express.Router();
 const CampaignController = require("../controller/controller.campaign.js");
-const { authMiddleware } = require("../middleware/middleware.auth.js");
+const { verifyAdmin } = require("../middleware/middleware.adminAuth.js");
 
-// Public routes
+// ALL routes require admin authentication for college isolation
+router.use(verifyAdmin);
+
+// Campaign routes - all protected by admin auth
 router.get("/", CampaignController.getCampaigns);
 router.get("/analytics", CampaignController.getCampaignAnalytics);
 router.get("/:id", CampaignController.getCampaignById);
-
-// Protected routes
-router.post("/", authMiddleware, CampaignController.createCampaign);
-router.put("/:id", authMiddleware, CampaignController.updateCampaign);
-router.delete("/:id", authMiddleware, CampaignController.deleteCampaign);
-router.post("/:id/donate", authMiddleware, CampaignController.donate);
-router.post("/:id/verify", authMiddleware, CampaignController.verifyCampaign);
+router.post("/", CampaignController.createCampaign);
+router.put("/:id", CampaignController.updateCampaign);
+router.delete("/:id", CampaignController.deleteCampaign);
+router.post("/:id/donate", CampaignController.donate);
+router.post("/:id/verify", CampaignController.verifyCampaign);
 
 module.exports = router;

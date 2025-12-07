@@ -35,14 +35,14 @@ const analyticsEventSchema = new mongoose.Schema({
     ],
     index: true
   },
-  
+
   // Event category for grouping
   category: {
     type: String,
     enum: ["engagement", "conversion", "navigation", "social", "admin"],
     required: true
   },
-  
+
   // Actor (who triggered the event)
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -53,20 +53,20 @@ const analyticsEventSchema = new mongoose.Schema({
     type: String,
     enum: ["Alumni", "Student", "Admin", "Anonymous"]
   },
-  
+
   // Session tracking
   sessionId: String,
-  
+
   // Resource details
   resourceType: String,
   resourceId: mongoose.Schema.Types.ObjectId,
-  
+
   // Event properties (flexible data)
   properties: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
   },
-  
+
   // User context
   userContext: {
     department: String,
@@ -74,7 +74,7 @@ const analyticsEventSchema = new mongoose.Schema({
     college: mongoose.Schema.Types.ObjectId,
     skills: [String]
   },
-  
+
   // Device & location info
   device: {
     type: {
@@ -90,15 +90,15 @@ const analyticsEventSchema = new mongoose.Schema({
     region: String,
     city: String
   },
-  
+
   // Timing
   duration: Number, // For time-based events (in seconds)
-  
+
   // Attribution
   source: String, // referrer, campaign, direct
   medium: String, // email, social, organic
   campaign: String, // specific campaign name
-  
+
   // Timestamp with time components for easy aggregation
   timestamp: {
     type: Date,
@@ -113,14 +113,13 @@ const analyticsEventSchema = new mongoose.Schema({
 });
 
 // Pre-save hook to set time components
-analyticsEventSchema.pre('save', function(next) {
+analyticsEventSchema.pre('save', async function () {
   const date = this.timestamp || new Date();
   this.hour = date.getHours();
   this.dayOfWeek = date.getDay();
   this.week = getWeekNumber(date);
   this.month = date.getMonth() + 1;
   this.year = date.getFullYear();
-  next();
 });
 
 function getWeekNumber(date) {

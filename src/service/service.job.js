@@ -53,11 +53,14 @@ const updateJob = async (jobId, jobData, adminId) => {
     }
 };
 
-const deleteJob = async (jobId) => {
+const deleteJob = async (jobId, adminId) => {
     try {
-        const deletedJob = await Job.findByIdAndDelete(jobId);
-        // Also delete related job applications
-        await JobApplication.deleteMany({ jobId });
+        // Verify ownership before deletion
+        const deletedJob = await Job.findOneAndDelete({ _id: jobId, adminId });
+        if (deletedJob) {
+            // Also delete related job applications
+            await JobApplication.deleteMany({ jobId });
+        }
         return deletedJob;
     } catch (error) {
         throw error;

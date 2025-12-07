@@ -55,21 +55,21 @@ const deleteEvent = async (eventId, adminId) => {
   }
 };
 
-const registerForEvent = async (eventId, userId) => {
+const registerForEvent = async (eventId, userId, adminId) => {
   try {
-    const event = await Event.findById(eventId);
+    const event = await Event.findOne({ _id: eventId, adminId });
     if (!event) {
       return null;
     }
-    
+
     // Check if already registered
     if (event.registeredUsers.includes(userId)) {
       throw new Error("Already registered for this event");
     }
-    
+
     event.registeredUsers.push(userId);
     await event.save();
-    
+
     return await Event.findById(eventId)
       .populate("createdBy", "name email")
       .populate("registeredUsers", "name email");

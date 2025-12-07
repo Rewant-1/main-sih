@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 
 const newsletterSchema = new mongoose.Schema({
+  // College Isolation - Required for multi-tenant support
+  adminId: {
+    type: String,
+    required: true,
+    index: true,
+  },
+
   title: { type: String, required: true, trim: true },
   subject: { type: String, required: true, trim: true },
   content: { type: String, required: true }, // HTML content
@@ -102,7 +109,7 @@ const newsletterSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Pre-save to sync field aliases
-newsletterSchema.pre('save', function (next) {
+newsletterSchema.pre('save', async function () {
   // Sync scheduledAt and scheduledFor
   if (this.scheduledAt && !this.scheduledFor) {
     this.scheduledFor = this.scheduledAt;
@@ -123,8 +130,6 @@ newsletterSchema.pre('save', function (next) {
   } else if (this.specificBatch && !this.targetBatch) {
     this.targetBatch = this.specificBatch;
   }
-
-  next();
 });
 
 // Virtual for open rate

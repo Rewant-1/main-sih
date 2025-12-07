@@ -7,21 +7,21 @@ const kycSchema = new mongoose.Schema({
     ref: "User",
     required: true
   },
-  
+
   // KYC type
   type: {
     type: String,
     required: true,
     enum: ["alumni_verification", "degree_proof", "employment_proof", "identity_proof"]
   },
-  
+
   // Status
   status: {
     type: String,
     enum: ["pending", "under_review", "approved", "rejected", "expired", "resubmission_required"],
     default: "pending"
   },
-  
+
   // Documents
   documents: [{
     name: String,
@@ -45,7 +45,7 @@ const kycSchema = new mongoose.Schema({
       default: false
     }
   }],
-  
+
   // Verification details
   verificationData: {
     // For alumni verification
@@ -53,16 +53,16 @@ const kycSchema = new mongoose.Schema({
     rollNumber: String,
     department: String,
     degree: String,
-    
+
     // For employment verification
     company: String,
     designation: String,
     employeeId: String,
-    
+
     // Additional info
     additionalInfo: mongoose.Schema.Types.Mixed
   },
-  
+
   // Review details
   reviewedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -71,30 +71,30 @@ const kycSchema = new mongoose.Schema({
   reviewedAt: Date,
   reviewNotes: String,
   rejectionReason: String,
-  
+
   // Resubmission tracking
   resubmissionCount: {
     type: Number,
     default: 0
   },
   lastResubmittedAt: Date,
-  
+
   // College context
   college: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "College"
   },
-  
+
   // Priority
   priority: {
     type: String,
     enum: ["low", "normal", "high", "urgent"],
     default: "normal"
   },
-  
+
   // Expiration (for time-sensitive documents)
   expiresAt: Date,
-  
+
   createdAt: {
     type: Date,
     default: Date.now
@@ -111,9 +111,8 @@ kycSchema.index({ status: 1, createdAt: -1 });
 kycSchema.index({ college: 1, status: 1 });
 
 // Update timestamp on save
-kycSchema.pre('save', function(next) {
+kycSchema.pre('save', async function () {
   this.updatedAt = new Date();
-  next();
 });
 
 module.exports = mongoose.model("KYC", kycSchema);

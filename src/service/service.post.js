@@ -50,30 +50,36 @@ const deletePost = async (postId, adminId) => {
   }
 };
 
-const likePost = async (postId, userId) => {
-    try {
-        const post = await Post.findById(postId);
-        if (post.likes.includes(userId)) {
-            post.likes.pull(userId);
-        } else {
-            post.likes.push(userId);
-        }
-        await post.save();
-        return post;
-    } catch (error) {
-        throw error;
+const likePost = async (postId, userId, adminId) => {
+  try {
+    const post = await Post.findOne({ _id: postId, adminId });
+    if (!post) {
+      throw new Error("Post not found");
     }
+    if (post.likes.includes(userId)) {
+      post.likes.pull(userId);
+    } else {
+      post.likes.push(userId);
+    }
+    await post.save();
+    return post;
+  } catch (error) {
+    throw error;
+  }
 }
 
-const commentOnPost = async (postId, commentData) => {
-    try {
-        const post = await Post.findById(postId);
-        post.comments.push(commentData);
-        await post.save();
-        return post;
-    } catch (error) {
-        throw error;
+const commentOnPost = async (postId, commentData, adminId) => {
+  try {
+    const post = await Post.findOne({ _id: postId, adminId });
+    if (!post) {
+      throw new Error("Post not found");
     }
+    post.comments.push(commentData);
+    await post.save();
+    return post;
+  } catch (error) {
+    throw error;
+  }
 }
 
 module.exports = {

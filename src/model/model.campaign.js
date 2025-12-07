@@ -36,6 +36,13 @@ const donationSchema = new mongoose.Schema({
 });
 
 const campaignSchema = new mongoose.Schema({
+  // College Isolation - Required for multi-tenant support
+  adminId: {
+    type: String,
+    required: true,
+    index: true,
+  },
+
   // Basic Details
   title: { type: String, required: true, trim: true },
   tagline: { type: String },
@@ -149,7 +156,7 @@ const campaignSchema = new mongoose.Schema({
 });
 
 // Update milestones when raised amount changes
-campaignSchema.pre('save', function (next) {
+campaignSchema.pre('save', async function () {
   this.updatedAt = Date.now();
 
   // Sync targetAmount and goalAmount
@@ -183,8 +190,6 @@ campaignSchema.pre('save', function (next) {
   if (this.raisedAmount >= goal && this.status === 'active') {
     this.status = 'completed';
   }
-
-  next();
 });
 
 // Virtual for progress percentage

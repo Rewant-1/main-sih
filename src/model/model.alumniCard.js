@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 
 const alumniCardSchema = new mongoose.Schema({
+    // College Isolation - Required for multi-tenant support
+    adminId: {
+        type: String,
+        required: true,
+        index: true
+    },
+
     alumniId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Alumni",
@@ -124,15 +131,13 @@ const alumniCardSchema = new mongoose.Schema({
 });
 
 // Generate card number
-alumniCardSchema.pre('save', function (next) {
+alumniCardSchema.pre('save', async function () {
     this.updatedAt = Date.now();
 
     // Check expiry
     if (this.validUntil && new Date() > this.validUntil && this.status === 'active') {
         this.status = 'expired';
     }
-
-    next();
 });
 
 // Static method to generate unique card number

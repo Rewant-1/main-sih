@@ -5,8 +5,8 @@ const { authenticateToken } = require("../middleware/middleware.auth.js");
 const router = express.Router();
 
 // Public routes
-router.get("/", PostController.getPosts);
-router.get("/:id", PostController.getPostById);
+router.get("/", authenticateToken, PostController.getPosts);
+router.get("/:id", authenticateToken, PostController.getPostById);
 
 // Protected routes
 router.post("/", authenticateToken, PostController.createPost);

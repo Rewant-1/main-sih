@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 
 const auditLogSchema = new mongoose.Schema({
+  // College Isolation - Required for multi-tenant support
+  adminId: {
+    type: String,
+    required: true,
+    index: true
+  },
+
   // Action details
   action: {
     type: String,
@@ -11,7 +18,7 @@ const auditLogSchema = new mongoose.Schema({
       "INVITE_SENT", "PASSWORD_RESET", "KYC_SUBMIT", "KYC_APPROVE", "KYC_REJECT"
     ]
   },
-  
+
   // Resource being acted upon
   resourceType: {
     type: String,
@@ -26,7 +33,7 @@ const auditLogSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: false
   },
-  
+
   // Actor details
   actor: {
     type: mongoose.Schema.Types.ObjectId,
@@ -39,7 +46,7 @@ const auditLogSchema = new mongoose.Schema({
     default: "User"
   },
   actorEmail: String,
-  
+
   // Change details
   previousState: {
     type: mongoose.Schema.Types.Mixed,
@@ -54,19 +61,19 @@ const auditLogSchema = new mongoose.Schema({
     oldValue: mongoose.Schema.Types.Mixed,
     newValue: mongoose.Schema.Types.Mixed
   }],
-  
+
   // Request metadata
   ipAddress: String,
   userAgent: String,
   requestId: String,
-  
+
   // Additional context
   metadata: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
   },
   notes: String,
-  
+
   // Status
   status: {
     type: String,
@@ -74,7 +81,7 @@ const auditLogSchema = new mongoose.Schema({
     default: "success"
   },
   errorMessage: String,
-  
+
   createdAt: {
     type: Date,
     default: Date.now,

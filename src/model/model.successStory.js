@@ -1,6 +1,13 @@
 const mongoose = require("mongoose");
 
 const successStorySchema = new mongoose.Schema({
+  // College Isolation - Required for multi-tenant support
+  adminId: {
+    type: String,
+    required: true,
+    index: true,
+  },
+
   // Alumni reference - support both field names
   alumniId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -133,7 +140,7 @@ const successStorySchema = new mongoose.Schema({
 });
 
 // Generate slug from title
-successStorySchema.pre('save', function (next) {
+successStorySchema.pre('save', async function () {
   this.updatedAt = Date.now();
 
   // Sync alumniId and alumni
@@ -155,8 +162,6 @@ successStorySchema.pre('save', function (next) {
   if (!this.excerpt && this.content) {
     this.excerpt = this.content.substring(0, 297) + '...';
   }
-
-  next();
 });
 
 // Virtual for like count

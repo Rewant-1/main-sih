@@ -15,6 +15,12 @@
     "dev:memdb": "node ./scripts/run-with-memory-db.js",
     "test:smoke-admin": "node ./scripts/smoke-test-admin.js",
     "seed-demo": "node ./scripts/seed-demo.js",
+    "seed:1": "node ./src/scripts/seed-1-admins-users.js",
+    "seed:2": "node ./src/scripts/seed-2-profiles.js",
+    "seed:3": "node ./src/scripts/seed-3-jobs-events.js",
+    "seed:4": "node ./src/scripts/seed-4-campaigns-stories.js",
+    "seed:5": "node ./src/scripts/seed-5-engagement.js",
+    "seed:all": "npm run seed:1 && npm run seed:2 && npm run seed:3 && npm run seed:4 && npm run seed:5",
     "cleanup:dev-env": "powershell -ExecutionPolicy Bypass -File ./scripts/cleanup-dev-env.ps1 -Force",
     "force-clean:admin": "powershell -ExecutionPolicy Bypass -File ./scripts/force-clean-and-run-admin.ps1 -Force",
     "check-clean": "powershell -ExecutionPolicy Bypass -File ./scripts/check-clean-state.ps1"

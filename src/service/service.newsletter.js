@@ -1,57 +1,64 @@
 const Newsletter = require('../model/model.newsletter');
 
 class NewsletterService {
-    async getAll(filters = {}) {
-        const query = {};
-        
+    // Get all newsletters - filtered by adminId
+    async getAll(adminId, filters = {}) {
+        const query = { adminId };
+
         if (filters.status) {
             query.status = filters.status;
         }
-        
+
         const newsletters = await Newsletter.find(query)
             .populate('createdBy', 'name email')
             .sort({ createdAt: -1 });
-            
+
         return {
             newsletters,
             total: newsletters.length
         };
     }
 
-    async getById(id) {
-        return await Newsletter.findById(id)
+    // Get by ID - verify adminId ownership
+    async getById(id, adminId) {
+        return await Newsletter.findOne({ _id: id, adminId })
             .populate('createdBy', 'name email');
     }
 
-    async create(data, userId) {
+    // Create - requires adminId
+    async create(data, userId, adminId) {
         const newsletter = new Newsletter({
             ...data,
+            adminId,
             createdBy: userId,
             targetAudience: data.targetAudience || 'all'
         });
-        
+
         await newsletter.save();
         return newsletter;
     }
 
-    async update(id, data) {
-        const newsletter = await Newsletter.findByIdAndUpdate(
-            id,
+    // Update - verify adminId ownership
+    async update(id, data, adminId) {
+        const newsletter = await Newsletter.findOneAndUpdate(
+            { _id: id, adminId },
             { $set: { ...data, updatedAt: Date.now() } },
             { new: true }
         );
         return newsletter;
     }
 
-    async delete(id) {
-        return await Newsletter.findByIdAndDelete(id);
+    // Delete - verify adminId ownership
+    async delete(id, adminId) {
+        return await Newsletter.findOneAndDelete({ _id: id, adminId });
     }
 
-    async schedule(id, scheduledAt) {
-        const newsletter = await Newsletter.findByIdAndUpdate(
-            id,
-            { 
-                $set: { 
+    // Schedule - verify adminId ownership
+    async schedule(id, scheduledAt, adminId) {
+        const newsletter = await Newsletter.findOneAndUpdate(
+            { _id: id, adminId },
+            {
+                $set: {
                     status: 'scheduled',
                     scheduledAt: new Date(scheduledAt),
                     updatedAt: Date.now()
@@ -62,8 +69,9 @@ class NewsletterService {
         return newsletter;
     }
 
-    async send(id) {
-        const newsletter = await Newsletter.findById(id);
+    // Send - verify adminId ownership
+    async send(id, adminId) {
+        const newsletter = await Newsletter.findOne({ _id: id, adminId });
         if (!newsletter) {
             throw new Error('Newsletter not found');
         }
@@ -75,7 +83,7 @@ class NewsletterService {
             let recipientCount = 0;
             switch (newsletter.targetAudience) {
                 case 'all':
-                    recipientCount = 100; // Placeholder
+                    recipientCount = 100; // Placeholder - should query actual users
                     break;
                 case 'alumni':
                     recipientCount = 60; // Placeholder
@@ -104,32 +112,37 @@ class NewsletterService {
         }
     }
 
-    async trackOpen(id) {
-        return await Newsletter.findByIdAndUpdate(
-            id,
+    // Track open - verify adminId ownership
+    async trackOpen(id, adminId) {
+        return await Newsletter.findOneAndUpdate(
+            { _id: id, adminId },
             { $inc: { openCount: 1 } },
             { new: true }
         );
     }
 
-    async trackClick(id) {
-        return await Newsletter.findByIdAndUpdate(
-            id,
+    // Track click - verify adminId ownership
+    async trackClick(id, adminId) {
+        return await Newsletter.findOneAndUpdate(
+            { _id: id, adminId },
             { $inc: { clickCount: 1 } },
             { new: true }
         );
     }
 
-    async getStats() {
-        const total = await Newsletter.countDocuments();
-        const sent = await Newsletter.countDocuments({ status: 'sent' });
-        const scheduled = await Newsletter.countDocuments({ status: 'scheduled' });
-        const drafts = await Newsletter.countDocuments({ status: 'draft' });
-        
-        const sentNewsletters = await Newsletter.find({ status: 'sent' });
+    // Get stats - filtered by adminId
+    async getStats(adminId) {
+        const matchStage = { adminId };
+
+        const total = await Newsletter.countDocuments(matchStage);
+        const sent = await Newsletter.countDocuments({ ...matchStage, status: 'sent' });
+        const scheduled = await Newsletter.countDocuments({ ...matchStage, status: 'scheduled' });
+        const drafts = await Newsletter.countDocuments({ ...matchStage, status: 'draft' });
+
+        const sentNewsletters = await Newsletter.find({ ...matchStage, status: 'sent' });
         const totalRecipients = sentNewsletters.reduce((acc, n) => acc + (n.recipientCount || 0), 0);
         const totalOpened = sentNewsletters.reduce((acc, n) => acc + (n.openCount || 0), 0);
-        
+
         return {
             total,
             sent,

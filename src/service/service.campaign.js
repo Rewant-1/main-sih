@@ -1,20 +1,25 @@
 const Campaign = require("../model/model.campaign.js");
 
-const createCampaign = async (campaignData) => {
+// Create campaign - requires adminId
+const createCampaign = async (campaignData, adminId) => {
+  campaignData.adminId = adminId;
   const campaign = new Campaign(campaignData);
   return await campaign.save();
 };
 
-const getCampaigns = async (filters = {}, page = 1, limit = 10) => {
+// Get campaigns - filtered by adminId (college isolation)
+const getCampaigns = async (adminId, filters = {}, page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
-  const campaigns = await Campaign.find(filters)
+  const query = { adminId, ...filters };
+
+  const campaigns = await Campaign.find(query)
     .populate('organizer', 'name email')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
-  
-  const total = await Campaign.countDocuments(filters);
-  
+
+  const total = await Campaign.countDocuments(query);
+
   return {
     campaigns,
     total,
@@ -23,52 +28,73 @@ const getCampaigns = async (filters = {}, page = 1, limit = 10) => {
   };
 };
 
-const getCampaignById = async (id) => {
-  return await Campaign.findById(id)
+// Get campaign by ID - verify adminId ownership
+const getCampaignById = async (id, adminId) => {
+  return await Campaign.findOne({ _id: id, adminId })
     .populate('organizer', 'name email')
     .populate('donations.donor', 'name email')
     .populate('teamMembers.user', 'name email');
 };
 
-const updateCampaign = async (id, updateData) => {
+// Update campaign - verify adminId ownership
+const updateCampaign = async (id, updateData, adminId) => {
   updateData.updatedAt = new Date();
-  return await Campaign.findByIdAndUpdate(id, updateData, { new: true });
+  return await Campaign.findOneAndUpdate(
+    { _id: id, adminId },
+    updateData,
+    { new: true }
+  );
 };
 
-const deleteCampaign = async (id) => {
-  return await Campaign.findByIdAndDelete(id);
+// Delete campaign - verify adminId ownership
+const deleteCampaign = async (id, adminId) => {
+  return await Campaign.findOneAndDelete({ _id: id, adminId });
 };
 
-const addDonation = async (campaignId, donationData) => {
-  const campaign = await Campaign.findById(campaignId);
+// Add donation - verify campaign belongs to college
+const addDonation = async (campaignId, donationData, adminId) => {
+  const campaign = await Campaign.findOne({ _id: campaignId, adminId });
   if (!campaign) throw new Error("Campaign not found");
-  
+
   campaign.donations.push(donationData);
   campaign.raisedAmount += donationData.amount;
   campaign.supportersCount = new Set(campaign.donations.map(d => d.donor.toString())).size;
-  
+
   return await campaign.save();
 };
 
-const incrementViews = async (id) => {
-  return await Campaign.findByIdAndUpdate(id, { $inc: { views: 1 } });
+// Increment views - verify adminId ownership
+const incrementViews = async (id, adminId) => {
+  return await Campaign.findOneAndUpdate(
+    { _id: id, adminId },
+    { $inc: { views: 1 } }
+  );
 };
 
-const verifyCampaign = async (id, verifierId) => {
-  return await Campaign.findByIdAndUpdate(id, {
-    isVerified: true,
-    verifiedBy: verifierId,
-    verifiedAt: new Date(),
-    status: 'active'
-  }, { new: true });
+// Verify campaign - admin action
+const verifyCampaign = async (id, verifierId, adminId) => {
+  return await Campaign.findOneAndUpdate(
+    { _id: id, adminId },
+    {
+      isVerified: true,
+      verifiedBy: verifierId,
+      verifiedAt: new Date(),
+      status: 'active'
+    },
+    { new: true }
+  );
 };
 
-const getAnalytics = async () => {
-  const totalCampaigns = await Campaign.countDocuments();
-  const activeCampaigns = await Campaign.countDocuments({ status: 'active' });
-  const completedCampaigns = await Campaign.countDocuments({ status: 'completed' });
-  
+// Get analytics - filtered by adminId
+const getAnalytics = async (adminId) => {
+  const matchStage = { adminId };
+
+  const totalCampaigns = await Campaign.countDocuments(matchStage);
+  const activeCampaigns = await Campaign.countDocuments({ ...matchStage, status: 'active' });
+  const completedCampaigns = await Campaign.countDocuments({ ...matchStage, status: 'completed' });
+
   const fundingStats = await Campaign.aggregate([
+    { $match: matchStage },
     {
       $group: {
         _id: null,
@@ -79,12 +105,13 @@ const getAnalytics = async () => {
       }
     }
   ]);
-  
+
   const categoryStats = await Campaign.aggregate([
+    { $match: matchStage },
     { $group: { _id: '$category', count: { $sum: 1 }, raised: { $sum: '$raisedAmount' } } },
     { $sort: { count: -1 } }
   ]);
-  
+
   return {
     totalCampaigns,
     activeCampaigns,

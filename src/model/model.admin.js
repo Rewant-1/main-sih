@@ -41,15 +41,15 @@ const adminSchema = new mongoose.Schema({
     },
     address: {
         street: {
-            type: String, 
+            type: String,
             required: true,
         },
-        city: { 
+        city: {
             type: String,
             required: true,
         },
         state: {
-            type: String, 
+            type: String,
             required: true,
         },
         country: {
@@ -98,8 +98,8 @@ adminSchema.index({ adminId: 1 }); // Group by college
 adminSchema.index({ adminId: 1, isActive: 1 }); // Active admins per college
 adminSchema.index({ isSuperAdmin: 1 }); // Super admin queries
 
-// Update timestamp - use async function (no need for next callback in Mongoose 6+)
-adminSchema.pre('save', function() {
+// Update timestamp
+adminSchema.pre('save', async function () {
     this.updatedAt = Date.now();
 });
 

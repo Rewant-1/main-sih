@@ -252,7 +252,7 @@ const jobSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware
-jobSchema.pre('save', function (next) {
+jobSchema.pre('save', async function () {
     this.updatedAt = Date.now();
 
     // Update application count
@@ -266,8 +266,6 @@ jobSchema.pre('save', function (next) {
         this.isOpen = false;
         this.status = 'closed';
     }
-
-    next();
 });
 
 // Indexes

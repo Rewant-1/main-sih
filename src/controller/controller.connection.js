@@ -19,6 +19,16 @@ const sendRequest = async (req, res) => {
                 message: "Alumni not found.",
             });
         }
+
+        // College Isolation Check
+        const requestAdminId = req.user.adminId;
+        if (!requestAdminId || alumni.adminId !== requestAdminId) {
+            return res.status(403).json({
+                success: false,
+                message: "Unauthorized: Cannot connect with alumni from different college.",
+            });
+        }
+
         const existingConnection = await ConnectionModel.findOne({
             studentId,
             alumniId,
@@ -31,7 +41,7 @@ const sendRequest = async (req, res) => {
         }
         const connection = new ConnectionModel({
             studentId,
-            alumniId,
+            alumniId
         });
         await connection.save();
         res.status(201).json({
