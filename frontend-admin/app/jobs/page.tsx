@@ -3,48 +3,14 @@
 import { useEffect, useState } from "react";
 import PageLayout from "@/components/dashboard/PageLayout";
 import { useJobsStore } from "@/lib/stores";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,38 +21,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Search,
-  Plus,
-  MoreHorizontal,
   Eye,
   Trash2,
   Briefcase,
   Building,
   MapPin,
+  Clock,
 } from "lucide-react";
-import type { Job, CreateJobData } from "@/lib/types";
+import type { Job } from "@/lib/types";
+import { SARTHAK_CHART_COLORS } from "@/lib/theme";
 
 export default function JobsPage() {
-  const { jobs, fetchJobs, createJob, deleteJob, isLoading } = useJobsStore();
+  const { jobs, fetchJobs, deleteJob, isLoading } = useJobsStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [jobToDelete, setJobToDelete] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState<CreateJobData>({
-    title: "",
-    company: "",
-    location: "",
-    type: "full-time",
-    description: "",
-    skillsRequired: [],
-  });
-  const [skillInput, setSkillInput] = useState("");
 
   useEffect(() => {
     fetchJobs();
@@ -98,24 +52,6 @@ export default function JobsPage() {
       job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.location?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const handleCreateJob = async () => {
-    try {
-      await createJob(formData);
-      toast.success("Job created successfully");
-      setIsCreateDialogOpen(false);
-      setFormData({
-        title: "",
-        company: "",
-        location: "",
-        type: "full-time",
-        description: "",
-        skillsRequired: [],
-      });
-    } catch {
-      toast.error("Failed to create job");
-    }
-  };
 
   const handleDeleteJob = async () => {
     if (!jobToDelete) return;
@@ -129,343 +65,227 @@ export default function JobsPage() {
     }
   };
 
-  const addSkill = () => {
-    if (skillInput.trim() && !formData.skillsRequired?.includes(skillInput.trim())) {
-      setFormData({
-        ...formData,
-        skillsRequired: [...(formData.skillsRequired || []), skillInput.trim()],
-      });
-      setSkillInput("");
-    }
-  };
-
-  const removeSkill = (skill: string) => {
-    setFormData({
-      ...formData,
-      skillsRequired: formData.skillsRequired?.filter((s) => s !== skill),
-    });
-  };
-
   const fullTimeCount = jobs.filter((j) => j.type === "full-time").length;
   const internshipCount = jobs.filter((j) => j.type === "internship").length;
 
   return (
     <PageLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Jobs</h1>
-            <p className="text-muted-foreground">
-              Manage job postings
+            <h1 className="text-3xl font-bold text-[#001145]">Job Listings</h1>
+            <p className="text-[#7088aa] mt-1">
+              Manage and post job opportunities for alumni
             </p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Job
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Create New Job</DialogTitle>
-                <DialogDescription>
-                  Add a new job posting to the platform
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Job Title</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    placeholder="e.g., Software Engineer"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
-                  <Input
-                    id="company"
-                    value={formData.company}
-                    onChange={(e) =>
-                      setFormData({ ...formData, company: e.target.value })
-                    }
-                    placeholder="e.g., Tech Corp"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) =>
-                      setFormData({ ...formData, location: e.target.value })
-                    }
-                    placeholder="e.g., Remote, New York"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">Job Type</Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value: "full-time" | "internship") =>
-                      setFormData({ ...formData, type: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full-time">Full-time</SelectItem>
-                      <SelectItem value="internship">Internship</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Job description..."
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Skills Required</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={skillInput}
-                      onChange={(e) => setSkillInput(e.target.value)}
-                      placeholder="Add a skill"
-                      onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
-                    />
-                    <Button type="button" variant="outline" onClick={addSkill}>
-                      Add
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {formData.skillsRequired?.map((skill, i) => (
-                      <Badge
-                        key={i}
-                        variant="secondary"
-                        className="cursor-pointer"
-                        onClick={() => removeSkill(skill)}
-                      >
-                        {skill} ×
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+        </div>
+
+        {/* Stats Cards - Sarthak Theme (subtle icons) */}
+        <div className="grid gap-6 md:grid-cols-3">
+          {/* Total Jobs */}
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Jobs</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Briefcase size={18} className="text-[#4a5f7c]" />
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateJob} disabled={!formData.title || !formData.company}>
-                  Create Job
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{jobs.length}</p>
+            <p className="text-[#7088aa] text-sm mt-1">Active postings</p>
+          </div>
+
+          {/* Full-time */}
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Full-time</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Building size={18} className="text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{fullTimeCount}</p>
+            <p className="text-[#7088aa] text-sm mt-1">Full-time positions</p>
+          </div>
+
+          {/* Internships */}
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Internships</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <MapPin size={18} className="text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{internshipCount}</p>
+            <p className="text-[#7088aa] text-sm mt-1">Internship opportunities</p>
+          </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Jobs</CardTitle>
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{jobs.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Full-time</CardTitle>
-              <Building className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{fullTimeCount}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Internships</CardTitle>
-              <MapPin className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{internshipCount}</div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Jobs Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Job Listings</CardTitle>
-            <CardDescription>
-              All job postings on the platform
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        {/* Jobs List */}
+        <div className="bg-white rounded-2xl border border-[#e4f0ff] shadow-sm overflow-hidden">
+          {/* Header */}
+          <div className="p-6 border-b border-[#e4f0ff]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-[#001145]">All Job Postings</h2>
+                <p className="text-[#7088aa] text-sm mt-1">{filteredJobs.length} jobs found</p>
+              </div>
+              <div className="relative max-w-xs w-full">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7088aa]" />
                 <Input
                   placeholder="Search jobs..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                  className="pl-9 border-[#a8bdda] focus:border-[#001145]"
                 />
               </div>
             </div>
+          </div>
 
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Skills</TableHead>
-                    <TableHead>Posted</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-6 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-8 w-8" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : filteredJobs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <p className="text-muted-foreground">No jobs found</p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredJobs.map((job) => (
-                      <TableRow key={job._id}>
-                        <TableCell className="font-medium">{job.title}</TableCell>
-                        <TableCell>{job.company}</TableCell>
-                        <TableCell>{job.location || "Remote"}</TableCell>
-                        <TableCell>
-                          <Badge variant={job.type === "full-time" ? "default" : "secondary"}>
-                            {job.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {job.skillsRequired?.slice(0, 2).map((skill, i) => (
-                              <Badge key={i} variant="outline" className="text-xs">
-                                {skill}
-                              </Badge>
-                            ))}
-                            {job.skillsRequired?.length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{job.skillsRequired.length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {new Date(job.createdAt).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedJob(job);
-                                  setIsViewDialogOpen(true);
-                                }}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => {
-                                  setJobToDelete(job._id);
-                                  setIsDeleteDialogOpen(true);
-                                }}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Jobs Grid */}
+          <div className="p-6">
+            {isLoading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-[#f6faff] rounded-xl p-5 animate-pulse">
+                    <div className="h-5 bg-[#e4f0ff] rounded w-3/4 mb-3"></div>
+                    <div className="h-4 bg-[#e4f0ff] rounded w-1/2 mb-4"></div>
+                    <div className="h-3 bg-[#e4f0ff] rounded w-full mb-2"></div>
+                    <div className="h-3 bg-[#e4f0ff] rounded w-2/3"></div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredJobs.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="h-16 w-16 mx-auto mb-4 rounded-2xl bg-[#001145] flex items-center justify-center">
+                  <Briefcase size={28} className="text-white" />
+                </div>
+                <p className="text-[#001145] text-lg font-semibold">No jobs found</p>
+                <p className="text-[#7088aa] text-sm mt-1">Try adjusting your search or create a new job</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredJobs.map((job, index) => (
+                  <div
+                    key={job._id}
+                    className="bg-[#f6faff] rounded-xl p-5 border border-[#e4f0ff] hover:border-[#a8bdda] hover:shadow-lg transition-all group"
+                  >
+                    {/* Job Header */}
+                    <div className="flex items-start justify-between mb-3">
+                      <div
+                        className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-lg"
+                        style={{ backgroundColor: SARTHAK_CHART_COLORS[index % 5] }}
+                      >
+                        {job.company[0]?.toUpperCase()}
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setIsViewDialogOpen(true);
+                          }}
+                          className="p-2 hover:bg-[#e4f0ff] rounded-lg transition-colors"
+                        >
+                          <Eye size={16} className="text-[#4a5f7c]" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setJobToDelete(job._id);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} className="text-red-400" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Job Info */}
+                    <h3 className="font-bold text-[#001145] text-lg mb-1 line-clamp-1">{job.title}</h3>
+                    <p className="text-[#4a5f7c] text-sm mb-3">{job.company}</p>
+
+                    {/* Meta info */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      <span className="px-2.5 py-1 bg-[#001145] text-white text-xs font-semibold rounded-full">
+                        {job.type === "full-time" ? "Full-time" : "Internship"}
+                      </span>
+                      {job.location && (
+                        <span className="px-2.5 py-1 bg-[#e4f0ff] text-[#001145] text-xs font-medium rounded-full flex items-center gap-1">
+                          <MapPin size={10} /> {job.location}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Skills */}
+                    <div className="flex flex-wrap gap-1">
+                      {job.skillsRequired?.slice(0, 3).map((skill, i) => (
+                        <span
+                          key={i}
+                          className="px-2 py-0.5 bg-white border border-[#a8bdda] text-[#4a5f7c] text-xs rounded-md"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                      {job.skillsRequired?.length > 3 && (
+                        <span className="px-2 py-0.5 bg-[#7088aa] text-white text-xs rounded-md">
+                          +{job.skillsRequired.length - 3}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center gap-1 mt-4 pt-3 border-t border-[#e4f0ff] text-[#7088aa] text-xs">
+                      <Clock size={12} />
+                      {new Date(job.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* View Dialog */}
         <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>{selectedJob?.title}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-[#001145]">{selectedJob?.title}</DialogTitle>
+              <DialogDescription className="text-[#7088aa]">
                 {selectedJob?.company}
               </DialogDescription>
             </DialogHeader>
             {selectedJob && (
               <div className="space-y-4">
                 <div className="flex gap-2">
-                  <Badge variant={selectedJob.type === "full-time" ? "default" : "secondary"}>
-                    {selectedJob.type}
-                  </Badge>
-                  <Badge variant="outline">{selectedJob.location || "Remote"}</Badge>
+                  <span className="px-3 py-1 bg-[#001145] text-white text-sm font-semibold rounded-full">
+                    {selectedJob.type === "full-time" ? "Full-time" : "Internship"}
+                  </span>
+                  <span className="px-3 py-1 bg-[#e4f0ff] text-[#001145] text-sm font-medium rounded-full">
+                    {selectedJob.location || "Remote"}
+                  </span>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">
+                  <label className="text-sm font-medium text-[#7088aa]">
                     Description
                   </label>
-                  <p className="text-sm mt-1">{selectedJob.description || "No description provided"}</p>
+                  <p className="text-sm text-[#001145] mt-1">{selectedJob.description || "No description provided"}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">
+                  <label className="text-sm font-medium text-[#7088aa]">
                     Skills Required
                   </label>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {selectedJob.skillsRequired?.map((skill, i) => (
-                      <Badge key={i} variant="secondary">
+                      <span key={i} className="px-3 py-1 bg-[#e4f0ff] text-[#001145] text-xs font-semibold rounded-full">
                         {skill}
-                      </Badge>
+                      </span>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">
+                  <label className="text-sm font-medium text-[#7088aa]">
                     Posted On
                   </label>
-                  <p className="text-sm">{new Date(selectedJob.createdAt).toLocaleDateString()}</p>
+                  <p className="text-sm text-[#001145]">{new Date(selectedJob.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
             )}
@@ -476,14 +296,14 @@ export default function JobsPage() {
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogTitle className="text-[#001145]">Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription className="text-[#7088aa]">
                 This action cannot be undone. This will permanently delete the job posting.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteJob}>Delete</AlertDialogAction>
+              <AlertDialogCancel className="border-[#a8bdda]">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteJob} className="bg-red-500 hover:bg-red-600">Delete</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

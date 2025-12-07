@@ -128,7 +128,7 @@ export default function SurveysPage() {
       setIsLoading(true);
       const params: Record<string, string> = {};
       if (statusFilter !== "all") params.status = statusFilter;
-      
+
       const response = await surveysApi.getAll(params);
       setSurveys(response.data.data?.surveys || []);
     } catch {
@@ -154,17 +154,17 @@ export default function SurveysPage() {
 
   const handleAddQuestion = () => {
     if (!currentQuestion.text) return;
-    
+
     const newQuestion = {
       ...currentQuestion,
       order: formData.questions.length,
     };
-    
+
     setFormData({
       ...formData,
       questions: [...formData.questions, newQuestion],
     });
-    
+
     setCurrentQuestion({
       text: "",
       type: "short",
@@ -194,7 +194,7 @@ export default function SurveysPage() {
       toast({ title: "Error", description: "Add at least one question", variant: "destructive" });
       return;
     }
-    
+
     try {
       setIsSaving(true);
       await surveysApi.create(formData);
@@ -285,7 +285,7 @@ export default function SurveysPage() {
                   <TabsTrigger value="questions">Questions ({formData.questions.length})</TabsTrigger>
                   <TabsTrigger value="settings">Settings</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="details" className="space-y-4 mt-4">
                   <div className="grid gap-2">
                     <Label htmlFor="title">Survey Title</Label>
@@ -307,7 +307,7 @@ export default function SurveysPage() {
                     />
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="questions" className="space-y-4 mt-4">
                   {/* Question Builder */}
                   <Card>
@@ -328,7 +328,7 @@ export default function SurveysPage() {
                           <Label>Question Type</Label>
                           <Select
                             value={currentQuestion.type}
-                            onValueChange={(value: SurveyQuestion["type"]) => 
+                            onValueChange={(value: SurveyQuestion["type"]) =>
                               setCurrentQuestion({ ...currentQuestion, type: value, options: [] })
                             }
                           >
@@ -347,14 +347,14 @@ export default function SurveysPage() {
                         <div className="flex items-center space-x-2 pt-6">
                           <Switch
                             checked={currentQuestion.isRequired}
-                            onCheckedChange={(checked) => 
+                            onCheckedChange={(checked) =>
                               setCurrentQuestion({ ...currentQuestion, isRequired: checked })
                             }
                           />
                           <Label>Required</Label>
                         </div>
                       </div>
-                      
+
                       {(currentQuestion.type === "single_choice" || currentQuestion.type === "multiple_choice") && (
                         <div className="grid gap-2">
                           <Label>Options</Label>
@@ -383,13 +383,13 @@ export default function SurveysPage() {
                           </div>
                         </div>
                       )}
-                      
+
                       <Button onClick={handleAddQuestion} className="w-full">
                         Add Question
                       </Button>
                     </CardContent>
                   </Card>
-                  
+
                   {/* Questions List */}
                   <div className="space-y-2">
                     {formData.questions.map((q, index) => (
@@ -422,7 +422,7 @@ export default function SurveysPage() {
                     )}
                   </div>
                 </TabsContent>
-                
+
                 <TabsContent value="settings" className="space-y-4 mt-4">
                   <div className="grid gap-2">
                     <Label>Target Audience</Label>
@@ -482,50 +482,48 @@ export default function SurveysPage() {
           </Dialog>
         </div>
 
-        {/* Analytics Cards */}
+        {/* Analytics Cards - Sarthak Theme */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Surveys</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics?.totalSurveys || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {analytics?.activeSurveys || 0} active
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Responses</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics?.totalResponses || 0}</div>
-              <p className="text-xs text-muted-foreground">Across all surveys</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics?.avgCompletionRate || 0}%</div>
-              <p className="text-xs text-muted-foreground">Average rate</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Surveys</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics?.activeSurveys || 0}</div>
-              <p className="text-xs text-muted-foreground">Currently running</p>
-            </CardContent>
-          </Card>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Surveys</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <FileText className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{analytics?.totalSurveys || 0}</p>
+            <p className="text-[#7088aa] text-sm mt-1">{analytics?.activeSurveys || 0} active</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Responses</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Users className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{analytics?.totalResponses || 0}</p>
+            <p className="text-[#7088aa] text-sm mt-1">Across all surveys</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Completion Rate</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <CheckCircle className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{analytics?.avgCompletionRate || 0}%</p>
+            <p className="text-[#7088aa] text-sm mt-1">Average rate</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Active Surveys</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Clock className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{analytics?.activeSurveys || 0}</p>
+            <p className="text-[#7088aa] text-sm mt-1">Currently running</p>
+          </div>
         </div>
 
         {/* Surveys Table */}
@@ -695,7 +693,7 @@ export default function SurveysPage() {
                     </CardContent>
                   </Card>
                 </div>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm">Device Distribution</CardTitle>

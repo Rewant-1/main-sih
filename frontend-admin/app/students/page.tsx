@@ -68,35 +68,35 @@ export default function StudentsPage() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats - Sarthak Theme */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{students.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active</CardTitle>
-              <BookOpen className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeStudents}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Graduated</CardTitle>
-              <GraduationCap className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{graduatedStudents}</div>
-            </CardContent>
-          </Card>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Students</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Users className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{students.length}</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Active</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <BookOpen className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{activeStudents}</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Graduated</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <GraduationCap className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{graduatedStudents}</p>
+          </div>
         </div>
 
         {/* Students Table */}

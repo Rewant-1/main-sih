@@ -30,6 +30,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { Alumni } from "@/lib/types";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function AlumniPage() {
   const { alumni, fetchAlumni, verifyAlumni, isLoading } = useUsersStore();
@@ -91,67 +94,111 @@ export default function AlumniPage() {
     }
   };
 
-  // Export to Excel - connected to backend
-  const handleExportExcel = async () => {
+  // Export to Excel - client side
+  const handleExportExcel = () => {
     try {
-      toast.info("Preparing Excel file...");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/analytics/export?format=excel`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+      const data = filteredAlumni.map((a) => {
+        const user = a.userId as any;
+        return {
+          Name: user?.name || "",
+          Email: user?.email || "",
+          Phone: user?.phone || a.phone || "",
+          "Graduation Year": a.graduationYear,
+          Degree: a.degree || "",
+          Department: a.department || "",
+          Company: a.currentCompany || "",
+          Designation: a.designation || "",
+          Status: a.verified ? "Verified" : "Pending",
+          Skills: a.skills?.join(", ") || "",
+        };
       });
-      if (!response.ok) throw new Error('Export failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `alumni_export_${new Date().toISOString().split('T')[0]}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Excel file downloaded!");
-    } catch {
-      toast.error("Failed to export Excel. Please try again.");
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Alumni");
+      XLSX.writeFile(workbook, `Alumni_Export_${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success("Excel exported successfully");
+    } catch (error) {
+      console.error("Export Excel error:", error);
+      toast.error("Failed to export Excel");
     }
   };
 
-  // Export to PDF - connected to backend
-  const handleExportPDF = async () => {
+  // Export to PDF - client side
+  const handleExportPDF = () => {
     try {
-      toast.info("Preparing PDF file...");
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/analytics/export?format=pdf`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+      const doc = new jsPDF();
+
+      const tableColumn = ["Name", "Email", "Grad Year", "Dept", "Company", "Status"];
+      const tableRows = filteredAlumni.map((a) => {
+        const user = a.userId as any;
+        return [
+          user?.name || "",
+          user?.email || "",
+          a.graduationYear,
+          a.department || "",
+          a.currentCompany || "",
+          a.verified ? "Verified" : "Pending",
+        ];
       });
-      if (!response.ok) throw new Error('Export failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `alumni_export_${new Date().toISOString().split('T')[0]}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("PDF file downloaded!");
-    } catch {
-      toast.error("Failed to export PDF. Please try again.");
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [0, 17, 69] }, // #001145
+      });
+
+      doc.text("Alumni Directory", 14, 15);
+      doc.save(`Alumni_Export_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success("PDF exported successfully");
+    } catch (error) {
+      console.error("Export PDF error:", error);
+      toast.error("Failed to export PDF");
     }
   };
 
-  // Download sample CSV - enhanced with all new fields
-  const handleDownloadSample = () => {
-    const csvContent = `Name,Email,Phone,Degree,Department,Graduation Year,Enrollment No,Current Company,Designation,LinkedIn,City,State
-Rahul Sharma,rahul.sharma@example.com,9876543210,B.Tech,Computer Science,2022,CSE2022001,Google,Software Engineer,https://linkedin.com/in/rahulsharma,Bangalore,Karnataka
-Priya Patel,priya.patel@example.com,9876543211,M.Tech,Electronics,2021,ECE2021002,Microsoft,Senior Developer,https://linkedin.com/in/priyapatel,Hyderabad,Telangana
-Amit Kumar,amit.kumar@example.com,9876543212,MBA,IT,2023,MBA2023003,Amazon,Product Manager,https://linkedin.com/in/amitkumar,Mumbai,Maharashtra`;
+  // Export to CSV - client side (replaces Download Sample)
+  const handleExportCSV = () => {
+    try {
+      const headers = ["Name", "Email", "Phone", "Graduation Year", "Degree", "Department", "Company", "Designation", "Status", "Skills"];
+      const rows = filteredAlumni.map((a) => {
+        const user = a.userId as any;
+        const skills = a.skills?.join("; ") || ""; // Semicolon for CSV safety within field
+        return [
+          user?.name || "",
+          user?.email || "",
+          user?.phone || a.phone || "",
+          a.graduationYear,
+          a.degree || "",
+          a.department || "",
+          a.currentCompany || "",
+          a.designation || "",
+          a.verified ? "Verified" : "Pending",
+          `"${skills}"`, // Quote skills to handle commas
+        ];
+      });
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "alumni_import_template.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Sample CSV template downloaded");
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => row.map(cell => `${cell}`.includes(',') && !`${cell}`.startsWith('"') ? `"${cell}"` : cell).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Alumni_Export_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("CSV exported successfully");
+    } catch (error) {
+      console.error("Export CSV error:", error);
+      toast.error("Failed to export CSV");
+    }
   };
 
   // Handle CSV upload - connected to bulk import API
@@ -168,7 +215,7 @@ Amit Kumar,amit.kumar@example.com,9876543212,MBA,IT,2023,MBA2023003,Amazon,Produ
           const formData = new FormData();
           formData.append('file', file);
           formData.append('importType', 'alumni');
-          
+
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/bulk-imports`, {
             method: 'POST',
             headers: {
@@ -176,7 +223,7 @@ Amit Kumar,amit.kumar@example.com,9876543212,MBA,IT,2023,MBA2023003,Amazon,Produ
             },
             body: formData,
           });
-          
+
           const data = await response.json();
           if (data.success) {
             toast.success(`Upload successful! ${data.data.validRows} valid rows found. Processing...`);
@@ -241,11 +288,11 @@ Amit Kumar,amit.kumar@example.com,9876543212,MBA,IT,2023,MBA2023003,Amazon,Produ
               Export PDF
             </button>
             <button
-              onClick={handleDownloadSample}
+              onClick={handleExportCSV}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-[#dbeaff] rounded-lg text-[#4a5f7c] text-sm font-semibold hover:bg-[#f6f9fe] hover:text-[#001145] transition-colors shadow-sm"
             >
               <Download size={16} />
-              Download Sample CSV
+              Download CSV
             </button>
             <button
               onClick={handleUploadCSV}
@@ -477,11 +524,10 @@ Amit Kumar,amit.kumar@example.com,9876543212,MBA,IT,2023,MBA2023003,Amazon,Produ
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span
-                              className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                alumniItem.verified
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }`}
+                              className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${alumniItem.verified
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                                }`}
                             >
                               {alumniItem.verified ? "Verified" : "Pending"}
                             </span>
@@ -516,7 +562,7 @@ Amit Kumar,amit.kumar@example.com,9876543212,MBA,IT,2023,MBA2023003,Amazon,Produ
                                   <CheckCircle size={18} />
                                 </button>
                               )}
-                              <button 
+                              <button
                                 className="text-[#a8bdda] hover:text-[#001145] transition-colors p-1"
                                 title="More options"
                               >
@@ -619,11 +665,10 @@ Amit Kumar,amit.kumar@example.com,9876543212,MBA,IT,2023,MBA2023003,Amazon,Produ
                     </label>
                     <div className="mt-1">
                       <span
-                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          selectedAlumni.verified
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
+                        className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${selectedAlumni.verified
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                          }`}
                       >
                         {selectedAlumni.verified ? "Verified" : "Pending"}
                       </span>

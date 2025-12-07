@@ -116,7 +116,7 @@ export default function SuccessStoriesPage() {
       const params: Record<string, string | boolean> = {};
       if (statusFilter !== "all") params.status = statusFilter;
       if (categoryFilter !== "all") params.category = categoryFilter;
-      
+
       const response = await successStoriesApi.getAll(params);
       setStories(response.data.data?.stories || []);
     } catch {
@@ -384,46 +384,46 @@ export default function SuccessStoriesPage() {
           })}
         </div>
 
-        {/* Stats Row */}
+        {/* Stats Row - Sarthak Theme */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Stories</CardTitle>
-              <Award className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stories.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Published</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stories.filter((s) => s.status === "published").length}
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Stories</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Award className="h-4 w-4 text-[#4a5f7c]" />
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Views</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalViews.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Likes</CardTitle>
-              <Heart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalLikes}</div>
-            </CardContent>
-          </Card>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{stories.length}</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Published</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <CheckCircle className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">
+              {stories.filter((s) => s.status === "published").length}
+            </p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Views</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Eye className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{totalViews.toLocaleString()}</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Likes</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Heart className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{totalLikes}</p>
+          </div>
         </div>
 
         {/* Stories Table */}

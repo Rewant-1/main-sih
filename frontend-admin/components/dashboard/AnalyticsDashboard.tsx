@@ -5,19 +5,22 @@ import { Users, CheckCircle, UserCheck, Briefcase, ChevronDown, User, ShieldChec
 import GlassCard from './GlassCard';
 import DepartmentDistributionChart from './DepartmentDistributionChart';
 import GraduationYearTrendsChart from './GraduationYearTrendsChart';
+import type { Alumni } from '@/lib/types';
 
 interface AnalyticsDashboardProps {
   totalAlumni: number;
   verifiedAlumni: number;
   profileCompletion: number;
   employmentRate: number;
+  alumni?: Alumni[];
 }
 
 export default function AnalyticsDashboard({
   totalAlumni,
   verifiedAlumni,
   profileCompletion,
-  employmentRate
+  employmentRate,
+  alumni = []
 }: AnalyticsDashboardProps) {
   const verificationPercentage = totalAlumni > 0 ? ((verifiedAlumni / totalAlumni) * 100).toFixed(1) : '0.0';
   const completeProfiles = Math.round((profileCompletion * totalAlumni) / 100);
@@ -36,11 +39,11 @@ export default function AnalyticsDashboard({
 
       {/* --- Top Cards Grid --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        
+
         {/* --- Card 1: Total Alumni --- */}
-        <GlassCard 
-          className="w-full aspect-[4/3.5]" 
-          vector1Class="text-blue-200" 
+        <GlassCard
+          className="w-full aspect-[4/3.5]"
+          vector1Class="text-blue-200"
           vector2Class="text-blue-100"
         >
           {/* Top: Title & Icon */}
@@ -50,23 +53,23 @@ export default function AnalyticsDashboard({
               <Users size={18} className="text-[#030e29]" />
             </div>
           </div>
-          
+
           {/* Middle: Stats */}
           <div className="flex flex-col mt-10">
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-extrabold text-[#030e29]">{totalAlumni}</span>
             </div>
             <p className="text-[14px] font-medium text-[#030e29]/50">Overall registered</p>
-          </div> 
+          </div>
 
           {/* Bottom: Chart & Ghost Icon */}
           <div className="mt-auto flex justify-between items-end w-full">
             {/* Bar Chart */}
             <div className="flex items-end gap-1.5 h-8">
               {[40, 60, 30, 80, 50, 90, 45].map((h, i) => (
-                <div 
-                  key={i} 
-                  className={`w-1.5 rounded-sm ${i % 2 === 0 ? 'bg-[#030e29]/40' : 'bg-[#030e29]/20'}`} 
+                <div
+                  key={i}
+                  className={`w-1.5 rounded-sm ${i % 2 === 0 ? 'bg-[#030e29]/40' : 'bg-[#030e29]/20'}`}
                   style={{ height: `${h}%` }}
                 ></div>
               ))}
@@ -78,9 +81,9 @@ export default function AnalyticsDashboard({
 
 
         {/* --- Card 2: Verified Alumni --- */}
-        <GlassCard 
-          className="w-full aspect-[4/3.5]" 
-          vector1Class="text-blue-200" 
+        <GlassCard
+          className="w-full aspect-[4/3.5]"
+          vector1Class="text-blue-200"
           vector2Class="text-blue-100"
         >
           <div className="flex justify-between items-start w-full">
@@ -108,9 +111,9 @@ export default function AnalyticsDashboard({
 
 
         {/* --- Card 3: Profile Completion --- */}
-        <GlassCard 
-          className="w-full aspect-[4/3.5]" 
-          vector1Class="text-blue-200" 
+        <GlassCard
+          className="w-full aspect-[4/3.5]"
+          vector1Class="text-blue-200"
           vector2Class="text-blue-100"
         >
           <div className="flex justify-between items-start w-full">
@@ -138,9 +141,9 @@ export default function AnalyticsDashboard({
 
 
         {/* --- Card 4: Employment Rate --- */}
-        <GlassCard 
-          className="w-full aspect-[4/3.5]" 
-          vector1Class="text-blue-200" 
+        <GlassCard
+          className="w-full aspect-[4/3.5]"
+          vector1Class="text-blue-200"
           vector2Class="text-blue-100"
         >
           <div className="flex justify-between items-start w-full">
@@ -169,8 +172,8 @@ export default function AnalyticsDashboard({
 
       {/* --- Bottom Charts Grid --- */}
       <div className="grid grid-cols-1 mt-24 lg:grid-cols-2 gap-6">
-        <DepartmentDistributionChart />
-        <GraduationYearTrendsChart />
+        <DepartmentDistributionChart alumni={alumni} />
+        <GraduationYearTrendsChart alumni={alumni} />
       </div>
     </div>
   );

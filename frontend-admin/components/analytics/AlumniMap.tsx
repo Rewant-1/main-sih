@@ -1,10 +1,10 @@
 "use client";
 
-
 import React, { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { SARTHAK_CHART_COLORS, SARTHAK_THEME } from "@/lib/theme";
 
 // Fix for default marker icons in Next.js/React
 const DefaultIcon = L.icon({
@@ -17,39 +17,26 @@ const DefaultIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-// Custom colored marker for different companies
-const createColoredIcon = (color: string) => {
+// Custom colored marker for alumni - using Sarthak theme solid colors
+const createColoredIcon = (colorIndex: number) => {
+  const color = SARTHAK_CHART_COLORS[colorIndex % SARTHAK_CHART_COLORS.length];
   return L.divIcon({
     className: "custom-marker",
     html: `
       <div style="
-        background: linear-gradient(135deg, ${color}, ${color}dd);
+        background: ${color};
         width: 30px;
         height: 30px;
         border-radius: 50% 50% 50% 0;
         transform: rotate(-45deg);
         border: 3px solid white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        box-shadow: 0 4px 12px rgba(0, 17, 69, 0.4);
       "></div>
     `,
     iconSize: [30, 30],
     iconAnchor: [15, 30],
     popupAnchor: [0, -30],
   });
-};
-
-// Company color mapping
-const companyColors: Record<string, string> = {
-  Google: "#4285F4",
-  Microsoft: "#00A4EF",
-  Amazon: "#FF9900",
-  Flipkart: "#F7D000",
-  Infosys: "#007CC3",
-  TCS: "#008CD6",
-  Wipro: "#8B2332",
-  Accenture: "#A100FF",
-  Deloitte: "#86BC25",
-  default: "#0066FF",
 };
 
 export interface AlumniMarker {
@@ -100,11 +87,11 @@ export default function AlumniMap({
 
   if (alumni.length === 0) {
     return (
-      <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-[#f0f7ff] to-[#e8f4ff] rounded-xl">
+      <div className="h-full w-full flex items-center justify-center bg-[#f6faff] border border-[#e4f0ff] rounded-2xl">
         <div className="text-center p-8">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-[#e4f0ff] flex items-center justify-center">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-2xl bg-[#001145] flex items-center justify-center shadow-lg">
             <svg
-              className="h-8 w-8 text-[#7088aa]"
+              className="h-8 w-8 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -123,9 +110,9 @@ export default function AlumniMap({
               />
             </svg>
           </div>
-          <p className="text-[#7088aa] text-lg font-medium">No locations to display</p>
-          <p className="text-[#a8bdda] text-sm mt-1">
-            Alumni with location data will appear here
+          <p className="text-[#001145] text-lg font-bold mb-1">No Locations Yet</p>
+          <p className="text-[#7088aa] text-sm">
+            Alumni with location data will appear on this map
           </p>
         </div>
       </div>
@@ -140,14 +127,13 @@ export default function AlumniMap({
       scrollWheelZoom={true}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
       <FitBounds alumni={alumni} />
-      
-      {alumni.map((alumnus) => {
-        const color = companyColors[alumnus.company || ""] || companyColors.default;
-        const icon = createColoredIcon(color);
+
+      {alumni.map((alumnus, index) => {
+        const icon = createColoredIcon(index);
 
         return (
           <Marker
@@ -156,14 +142,15 @@ export default function AlumniMap({
             icon={icon}
           >
             <Popup>
-              <div style={{ minWidth: 220, fontFamily: "Inter, sans-serif" }}>
-                <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+              <div style={{ minWidth: 220, fontFamily: "Inter, sans-serif", padding: 4 }}>
+                {/* Header with avatar */}
+                <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
                   <div
                     style={{
                       width: 48,
                       height: 48,
                       borderRadius: 12,
-                      background: `linear-gradient(135deg, ${color}, ${color}dd)`,
+                      background: SARTHAK_CHART_COLORS[index % 5],
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -172,63 +159,89 @@ export default function AlumniMap({
                       fontSize: 18,
                     }}
                   >
-                    {alumnus.company ? alumnus.company[0] : "A"}
+                    {alumnus.name ? alumnus.name[0].toUpperCase() : "A"}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: "#001145" }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: "#001145", lineHeight: 1.3 }}>
                       {alumnus.name}
                     </div>
-                    <div style={{ fontSize: 13, color: "#4a5f7c" }}>
-                      {alumnus.role} @ {alumnus.company}
+                    <div style={{ fontSize: 12, color: "#4a5f7c", marginTop: 2 }}>
+                      {alumnus.role || "Alumni"}
                     </div>
                   </div>
                 </div>
 
+                {/* Company */}
+                {alumnus.company && alumnus.company !== "N/A" && (
+                  <div
+                    style={{
+                      background: "#001145",
+                      color: "white",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      marginBottom: 10,
+                      display: "inline-block",
+                    }}
+                  >
+                    {alumnus.company}
+                  </div>
+                )}
+
+                {/* Info badges */}
                 <div
                   style={{
                     display: "flex",
-                    gap: 8,
+                    gap: 6,
                     flexWrap: "wrap",
-                    marginBottom: 12,
+                    marginBottom: 14,
                   }}
                 >
-                  <span
-                    style={{
-                      background: "#e4f0ff",
-                      color: "#001145",
-                      padding: "4px 10px",
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    Batch {alumnus.graduation_year}
-                  </span>
-                  <span
-                    style={{
-                      background: "#f0fdf4",
-                      color: "#166534",
-                      padding: "4px 10px",
-                      borderRadius: 20,
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    📍 {alumnus.city}, {alumnus.state}
-                  </span>
+                  {alumnus.graduation_year && (
+                    <span
+                      style={{
+                        background: "#e4f0ff",
+                        color: "#001145",
+                        padding: "4px 10px",
+                        borderRadius: 16,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        border: "1px solid #a8bdda",
+                      }}
+                    >
+                      Batch {alumnus.graduation_year}
+                    </span>
+                  )}
+                  {alumnus.city && (
+                    <span
+                      style={{
+                        background: "#f6faff",
+                        color: "#4a5f7c",
+                        padding: "4px 10px",
+                        borderRadius: 16,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        border: "1px solid #a8bdda",
+                      }}
+                    >
+                      {alumnus.city}{alumnus.state ? `, ${alumnus.state}` : ""}
+                    </span>
+                  )}
                 </div>
 
+                {/* Action buttons */}
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={() => alert("Connect feature coming soon!")}
                     style={{
                       flex: 1,
-                      background: "linear-gradient(135deg, #0066FF, #0044dd)",
+                      background: "#001145",
                       color: "white",
                       border: "none",
                       padding: "8px 12px",
                       borderRadius: 8,
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: 600,
                       cursor: "pointer",
                     }}
@@ -239,12 +252,12 @@ export default function AlumniMap({
                     onClick={() => window.open(`/alumni/${alumnus.id}`, "_blank")}
                     style={{
                       flex: 1,
-                      background: "#f6f9fe",
-                      color: "#0066FF",
-                      border: "1px solid #dbeaff",
+                      background: "#f6faff",
+                      color: "#001145",
+                      border: "1px solid #a8bdda",
                       padding: "8px 12px",
                       borderRadius: 8,
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: 600,
                       cursor: "pointer",
                     }}

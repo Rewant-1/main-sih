@@ -118,19 +118,19 @@ interface CreateNewsletterData {
 
 // Mock API for newsletter (to be replaced with actual implementation)
 const newsletterApi = {
-  getAll: (params?: Record<string, string>) => 
+  getAll: (params?: Record<string, string>) =>
     api.get<ApiResponse<{ newsletters: Newsletter[]; total: number }>>("/newsletters", { params }),
-  getById: (id: string) => 
+  getById: (id: string) =>
     api.get<ApiResponse<Newsletter>>(`/newsletters/${id}`),
-  create: (data: CreateNewsletterData) => 
+  create: (data: CreateNewsletterData) =>
     api.post<ApiResponse<Newsletter>>("/newsletters", data),
-  update: (id: string, data: Partial<CreateNewsletterData>) => 
+  update: (id: string, data: Partial<CreateNewsletterData>) =>
     api.put<ApiResponse<Newsletter>>(`/newsletters/${id}`, data),
-  delete: (id: string) => 
+  delete: (id: string) =>
     api.delete<ApiResponse<void>>(`/newsletters/${id}`),
-  send: (id: string) => 
+  send: (id: string) =>
     api.post<ApiResponse<Newsletter>>(`/newsletters/${id}/send`),
-  schedule: (id: string, scheduledAt: string) => 
+  schedule: (id: string, scheduledAt: string) =>
     api.post<ApiResponse<Newsletter>>(`/newsletters/${id}/schedule`, { scheduledAt }),
 };
 
@@ -308,8 +308,8 @@ export default function NewslettersPage() {
   const totalRecipients = newsletters.reduce((acc, n) => acc + n.stats.totalRecipients, 0);
   const avgOpenRate = newsletters.filter(n => n.status === "sent").length > 0
     ? (newsletters.filter(n => n.status === "sent")
-        .reduce((acc, n) => acc + (n.stats.opened / Math.max(n.stats.delivered, 1)), 0) 
-        / newsletters.filter(n => n.status === "sent").length * 100).toFixed(1)
+      .reduce((acc, n) => acc + (n.stats.opened / Math.max(n.stats.delivered, 1)), 0)
+      / newsletters.filter(n => n.status === "sent").length * 100).toFixed(1)
     : 0;
 
   return (
@@ -363,7 +363,7 @@ export default function NewslettersPage() {
                   <Label htmlFor="recipientType">Recipients</Label>
                   <Select
                     value={formData.recipientType}
-                    onValueChange={(value: "all" | "alumni" | "students" | "custom") => 
+                    onValueChange={(value: "all" | "alumni" | "students" | "custom") =>
                       setFormData({ ...formData, recipientType: value })}
                   >
                     <SelectTrigger>
@@ -393,12 +393,12 @@ export default function NewslettersPage() {
                   <Textarea
                     id="content"
                     value={useHtmlEditor ? formData.htmlContent : formData.content}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      [useHtmlEditor ? "htmlContent" : "content"]: e.target.value 
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      [useHtmlEditor ? "htmlContent" : "content"]: e.target.value
                     })}
-                    placeholder={useHtmlEditor 
-                      ? "<html>...</html>" 
+                    placeholder={useHtmlEditor
+                      ? "<html>...</html>"
                       : "Write your newsletter content..."}
                     rows={12}
                     className={useHtmlEditor ? "font-mono text-sm" : ""}
@@ -435,47 +435,47 @@ export default function NewslettersPage() {
           </Dialog>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Sarthak Theme */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Newsletters</CardTitle>
-              <Mail className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{newsletters.length}</div>
-              <p className="text-xs text-muted-foreground">{totalSent} sent</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Recipients</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalRecipients.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg. Open Rate</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{avgOpenRate}%</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {newsletters.filter((n) => n.status === "scheduled").length}
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Newsletters</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Mail className="h-4 w-4 text-[#4a5f7c]" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{newsletters.length}</p>
+            <p className="text-[#7088aa] text-sm mt-1">{totalSent} sent</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Recipients</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Users className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{totalRecipients.toLocaleString()}</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Avg. Open Rate</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <BarChart3 className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{avgOpenRate}%</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Scheduled</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Clock className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">
+              {newsletters.filter((n) => n.status === "scheduled").length}
+            </p>
+          </div>
         </div>
 
         {/* Newsletters Table */}
@@ -562,7 +562,7 @@ export default function NewslettersPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge 
+                              <Badge
                                 variant={statusColors[newsletter.status] as "default" | "secondary" | "outline" | "destructive"}
                                 className="flex items-center gap-1 w-fit"
                               >
@@ -572,7 +572,7 @@ export default function NewslettersPage() {
                             </TableCell>
                             <TableCell>
                               <div className="text-sm">
-                                {newsletter.sentAt 
+                                {newsletter.sentAt
                                   ? format(new Date(newsletter.sentAt), "MMM d, yyyy")
                                   : newsletter.scheduledAt
                                     ? format(new Date(newsletter.scheduledAt), "MMM d, yyyy HH:mm")
@@ -588,8 +588,8 @@ export default function NewslettersPage() {
                                       {((newsletter.stats.opened / Math.max(newsletter.stats.delivered, 1)) * 100).toFixed(1)}%
                                     </span>
                                   </div>
-                                  <Progress 
-                                    value={(newsletter.stats.opened / Math.max(newsletter.stats.delivered, 1)) * 100} 
+                                  <Progress
+                                    value={(newsletter.stats.opened / Math.max(newsletter.stats.delivered, 1)) * 100}
                                     className="h-1"
                                   />
                                 </div>
@@ -708,8 +708,8 @@ export default function NewslettersPage() {
               <div className="space-y-4">
                 <div className="border rounded-lg p-4">
                   <div className="text-sm text-muted-foreground mb-2">
-                    <strong>To:</strong> {selectedNewsletter.recipients.type === "all" 
-                      ? "All Users" 
+                    <strong>To:</strong> {selectedNewsletter.recipients.type === "all"
+                      ? "All Users"
                       : selectedNewsletter.recipients.type === "alumni"
                         ? "Alumni"
                         : selectedNewsletter.recipients.type === "students"
@@ -721,7 +721,7 @@ export default function NewslettersPage() {
                   </div>
                   <div className="border-t pt-4">
                     {selectedNewsletter.htmlContent ? (
-                      <div 
+                      <div
                         dangerouslySetInnerHTML={{ __html: selectedNewsletter.htmlContent }}
                         className="prose prose-sm max-w-none"
                       />

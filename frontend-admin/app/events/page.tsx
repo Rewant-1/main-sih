@@ -197,35 +197,35 @@ export default function EventsPage() {
           </Dialog>
         </div>
 
-        {/* Stats */}
+        {/* Stats - Sarthak Theme */}
         <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Events</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{events.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming</CardTitle>
-              <Calendar className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{upcomingEvents}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Past Events</CardTitle>
-              <Calendar className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{pastEvents}</div>
-            </CardContent>
-          </Card>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Total Events</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Calendar className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{events.length}</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Upcoming</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Calendar className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{upcomingEvents}</p>
+          </div>
+          <div className="bg-[#f6faff] rounded-2xl p-6 border border-[#e4f0ff]">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-[#7088aa] text-sm font-medium">Past Events</span>
+              <div className="p-2 bg-[#e4f0ff] rounded-xl">
+                <Calendar className="h-4 w-4 text-[#4a5f7c]" />
+              </div>
+            </div>
+            <p className="text-4xl font-extrabold text-[#001145]">{pastEvents}</p>
+          </div>
         </div>
 
         {/* Events Table */}

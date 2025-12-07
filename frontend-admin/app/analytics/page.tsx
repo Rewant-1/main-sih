@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import * as React from "react";
 import dynamic from "next/dynamic";
 import {
@@ -14,7 +12,6 @@ import {
   Globe,
   RefreshCw,
   Filter,
-  ChevronDown,
 } from "lucide-react";
 import {
   BarChart,
@@ -29,20 +26,20 @@ import {
   Cell,
   LineChart,
   Line,
-  Legend,
-  AreaChart,
-  Area,
 } from "recharts";
 
 import PageLayout from "@/components/dashboard/PageLayout";
+import DepartmentDistributionChart from "@/components/dashboard/DepartmentDistributionChart";
+import GraduationYearTrendsChart from "@/components/dashboard/GraduationYearTrendsChart";
 import { alumniApi } from "@/lib/api";
+import { SARTHAK_THEME, SARTHAK_CHART_COLORS } from "@/lib/theme";
 import type { AlumniMarker } from "@/components/analytics/AlumniMap";
 
 // Dynamic import for Map component (Leaflet doesn't work with SSR)
 const AlumniMapComponent = dynamic(() => import("@/components/analytics/AlumniMap"), {
   ssr: false,
   loading: () => (
-    <div className="h-[500px] bg-gradient-to-br from-[#f0f7ff] to-[#e8f4ff] rounded-2xl flex items-center justify-center">
+    <div className="h-[500px] bg-[#f6faff] border border-[#e4f0ff] rounded-2xl flex items-center justify-center">
       <div className="text-center">
         <Globe className="h-12 w-12 text-[#7088aa] mx-auto mb-3 animate-pulse" />
         <p className="text-[#7088aa]">Loading map...</p>
@@ -50,30 +47,6 @@ const AlumniMapComponent = dynamic(() => import("@/components/analytics/AlumniMa
     </div>
   ),
 });
-
-// Beautiful color palette
-const COLORS = {
-  primary: "#001145",
-  secondary: "#0066FF",
-  accent: "#00C9A7",
-  warning: "#FFB547",
-  danger: "#FF6B6B",
-  purple: "#8B5CF6",
-  pink: "#EC4899",
-  cyan: "#06B6D4",
-  lime: "#84CC16",
-};
-
-const CHART_COLORS = [
-  "#0066FF",
-  "#00C9A7",
-  "#FFB547",
-  "#8B5CF6",
-  "#EC4899",
-  "#FF6B6B",
-  "#06B6D4",
-  "#84CC16",
-];
 
 interface Alumni {
   _id: string;
@@ -120,7 +93,7 @@ export default function AnalyticsPage() {
     const total = alumni.length;
     const verified = alumni.filter((a) => a.verified).length;
     const employed = alumni.filter((a) => a.employmentStatus === "employed" || a.currentCompany).length;
-    
+
     // Department distribution
     const deptMap: Record<string, number> = {};
     alumni.forEach((a) => {
@@ -228,13 +201,18 @@ export default function AnalyticsPage() {
     });
   }, [analytics.mapData, mapFilter]);
 
+  // Convert alumni to expected type for dashboard components
+  const alumniForCharts = React.useMemo(() => {
+    return alumni as unknown as import("@/lib/types").Alumni[];
+  }, [alumni]);
+
   return (
     <PageLayout>
-      <div className="min-h-screen bg-gradient-to-br from-[#fafcff] via-white to-[#f0f7ff] p-8">
+      <div className="min-h-screen bg-white p-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-[#001145] to-[#0066FF] bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold text-[#001145]">
               Analytics Dashboard
             </h1>
             <p className="text-[#7088aa] mt-2">
@@ -244,7 +222,7 @@ export default function AnalyticsPage() {
           <button
             onClick={fetchAlumni}
             disabled={loading}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#001145] to-[#0033aa] hover:from-[#001439] hover:to-[#0044bb] text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#001145] hover:bg-[#001439] text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh Data
@@ -252,16 +230,15 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-8 bg-white/80 backdrop-blur-sm p-1.5 rounded-2xl border border-[#e4f0ff] shadow-sm w-fit">
+        <div className="flex gap-2 mb-8 bg-[#f6faff] p-1.5 rounded-2xl border border-[#e4f0ff] shadow-sm w-fit">
           {(["overview", "map", "charts"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                activeTab === tab
-                  ? "bg-gradient-to-r from-[#001145] to-[#0066FF] text-white shadow-lg"
-                  : "text-[#7088aa] hover:text-[#001145] hover:bg-[#f6f9fe]"
-              }`}
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === tab
+                ? "bg-[#001145] text-white shadow-lg"
+                : "text-[#7088aa] hover:text-[#001145] hover:bg-[#e4f0ff]"
+                }`}
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
@@ -269,7 +246,7 @@ export default function AnalyticsPage() {
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-3xl border border-[#e4f0ff] shadow-xl p-16 text-center">
+          <div className="bg-[#f6faff] rounded-3xl border border-[#e4f0ff] shadow-xl p-16 text-center">
             <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-[#7088aa]" />
             <p className="text-[#7088aa] text-lg">Loading analytics data...</p>
           </div>
@@ -285,92 +262,35 @@ export default function AnalyticsPage() {
                     label="Total Alumni"
                     value={analytics.total}
                     trend="+12%"
-                    color="from-[#0066FF] to-[#00C9A7]"
+                    bgColor="#7088aa"
                   />
                   <StatCard
                     icon={GraduationCap}
                     label="Verified Alumni"
                     value={analytics.verified}
                     subLabel={`${analytics.pending} pending`}
-                    color="from-[#8B5CF6] to-[#EC4899]"
+                    bgColor="#7088aa"
                   />
                   <StatCard
                     icon={Briefcase}
                     label="Employment Rate"
                     value={`${analytics.employmentRate}%`}
                     subLabel={`${analytics.employed} employed`}
-                    color="from-[#FFB547] to-[#FF6B6B]"
+                    bgColor="#7088aa"
                   />
                   <StatCard
                     icon={MapPin}
                     label="Locations Tracked"
                     value={analytics.mapData.length}
                     subLabel="On the map"
-                    color="from-[#06B6D4] to-[#84CC16]"
+                    bgColor="#7088aa"
                   />
                 </div>
 
-                {/* Quick Overview Charts */}
+                {/* Use Dashboard Components for Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Department Distribution */}
-                  <ChartCard title="Department Distribution" icon={Building2}>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={analytics.departments}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          innerRadius={60}
-                          label={({ name, percent }) =>
-                            `${name} (${(percent * 100).toFixed(0)}%)`
-                          }
-                          labelLine={false}
-                        >
-                          {analytics.departments.map((_, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={CHART_COLORS[index % CHART_COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
-
-                  {/* Graduation Trends */}
-                  <ChartCard title="Graduation Year Trends" icon={TrendingUp}>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={analytics.gradTrends}>
-                        <defs>
-                          <linearGradient id="gradientArea" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#0066FF" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#0066FF" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" />
-                        <XAxis dataKey="year" stroke="#7088aa" />
-                        <YAxis stroke="#7088aa" />
-                        <Tooltip
-                          contentStyle={{
-                            background: "white",
-                            border: "1px solid #e4f0ff",
-                            borderRadius: "12px",
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="count"
-                          stroke="#0066FF"
-                          strokeWidth={3}
-                          fill="url(#gradientArea)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </ChartCard>
+                  <DepartmentDistributionChart alumni={alumniForCharts} />
+                  <GraduationYearTrendsChart alumni={alumniForCharts} />
                 </div>
 
                 {/* Map Preview */}
@@ -381,9 +301,9 @@ export default function AnalyticsPage() {
                   <div className="mt-4 text-center">
                     <button
                       onClick={() => setActiveTab("map")}
-                      className="text-[#0066FF] hover:text-[#001145] font-semibold text-sm"
+                      className="text-[#001145] hover:text-[#4a5f7c] font-semibold text-sm"
                     >
-                      View Full Map →
+                      View Full Map
                     </button>
                   </div>
                 </ChartCard>
@@ -394,7 +314,7 @@ export default function AnalyticsPage() {
             {activeTab === "map" && (
               <div className="space-y-6">
                 {/* Map Filters */}
-                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-2xl border border-[#e4f0ff] shadow-lg">
+                <div className="bg-[#f6faff] p-5 rounded-2xl border border-[#e4f0ff] shadow-lg">
                   <div className="flex items-center gap-6 flex-wrap">
                     <div className="flex items-center gap-2 text-[#001145] font-semibold">
                       <Filter size={18} />
@@ -402,52 +322,34 @@ export default function AnalyticsPage() {
                     </div>
                     <div className="flex gap-4 flex-wrap">
                       <select
-                        className="px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-xl text-sm text-[#4a5f7c] focus:outline-none focus:border-[#0066FF] transition-colors"
+                        className="px-4 py-2.5 bg-white border border-[#a8bdda] rounded-xl text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] transition-colors"
                         value={mapFilter.company}
                         onChange={(e) => setMapFilter({ ...mapFilter, company: e.target.value })}
                       >
                         {uniqueCompanies.map((c) => (
-                          <option key={c} value={c}>
-                            {c === "All" ? "All Companies" : c}
-                          </option>
+                          <option key={c} value={c}>{c === "All" ? "All Companies" : c}</option>
                         ))}
                       </select>
                       <select
-                        className="px-4 py-2.5 bg-[#f6f9fe] border border-[#dbeaff] rounded-xl text-sm text-[#4a5f7c] focus:outline-none focus:border-[#0066FF] transition-colors"
+                        className="px-4 py-2.5 bg-white border border-[#a8bdda] rounded-xl text-sm text-[#4a5f7c] focus:outline-none focus:border-[#001145] transition-colors"
                         value={mapFilter.batch}
                         onChange={(e) => setMapFilter({ ...mapFilter, batch: e.target.value })}
                       >
                         {uniqueBatches.map((b) => (
-                          <option key={b} value={b}>
-                            {b === "All" ? "All Batches" : `Batch ${b}`}
-                          </option>
+                          <option key={b} value={b}>{b === "All" ? "All Batches" : `Batch ${b}`}</option>
                         ))}
                       </select>
                     </div>
                     <div className="ml-auto text-sm text-[#7088aa]">
-                      Showing <span className="font-bold text-[#001145]">{filteredMapData.length}</span> alumni
+                      Showing {filteredMapData.length} of {analytics.mapData.length} alumni
                     </div>
                   </div>
                 </div>
 
                 {/* Full Map */}
-                <div className="bg-white rounded-3xl border border-[#e4f0ff] shadow-xl overflow-hidden">
-                  <div className="p-6 border-b border-[#e4f0ff]">
-                    <h2 className="text-xl font-bold text-[#001145] flex items-center gap-3">
-                      <Globe className="text-[#0066FF]" />
-                      See where our alumni work — get inspired
-                    </h2>
-                    <p className="text-[#7088aa] text-sm mt-1">
-                      Click on markers to view alumni details
-                    </p>
-                  </div>
+                <div className="bg-white rounded-2xl border border-[#e4f0ff] shadow-lg overflow-hidden">
                   <div className="h-[600px]">
                     <AlumniMapComponent alumni={filteredMapData} />
-                  </div>
-                  <div className="p-4 bg-[#f6f9fe] border-t border-[#e4f0ff] text-center">
-                    <p className="text-xs text-[#7088aa]">
-                      🔒 Privacy: Only alumni who have opted in are shown on the map
-                    </p>
                   </div>
                 </div>
               </div>
@@ -455,28 +357,27 @@ export default function AnalyticsPage() {
 
             {/* Charts Tab */}
             {activeTab === "charts" && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Top Companies */}
+                  {/* Top Hiring Companies */}
                   <ChartCard title="Top Hiring Companies" icon={Building2}>
-                    <ResponsiveContainer width="100%" height={320}>
+                    <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={analytics.topCompanies} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" />
-                        <XAxis type="number" stroke="#7088aa" />
-                        <YAxis dataKey="name" type="category" stroke="#7088aa" width={100} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" horizontal={true} vertical={false} />
+                        <XAxis type="number" stroke="#7088aa" tickLine={false} axisLine={false} />
+                        <YAxis dataKey="name" type="category" width={100} stroke="#4a5f7c" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} />
                         <Tooltip
                           contentStyle={{
-                            background: "white",
-                            border: "1px solid #e4f0ff",
+                            background: "#001145",
+                            border: "1px solid #4a5f7c",
                             borderRadius: "12px",
                           }}
+                          labelStyle={{ color: "#a8bdda" }}
+                          itemStyle={{ color: "#ffffff" }}
                         />
-                        <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                           {analytics.topCompanies.map((_, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={CHART_COLORS[index % CHART_COLORS.length]}
-                            />
+                            <Cell key={`cell-${index}`} fill={SARTHAK_CHART_COLORS[index % SARTHAK_CHART_COLORS.length]} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -485,7 +386,7 @@ export default function AnalyticsPage() {
 
                   {/* Degree Distribution */}
                   <ChartCard title="Degree Distribution" icon={GraduationCap}>
-                    <ResponsiveContainer width="100%" height={320}>
+                    <ResponsiveContainer width="100%" height={300}>
                       <PieChart>
                         <Pie
                           data={analytics.degrees}
@@ -493,69 +394,76 @@ export default function AnalyticsPage() {
                           nameKey="name"
                           cx="50%"
                           cy="50%"
-                          outerRadius={120}
-                          label
+                          outerRadius={100}
+                          innerRadius={50}
+                          stroke="#f6faff"
+                          strokeWidth={2}
                         >
                           {analytics.degrees.map((_, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={CHART_COLORS[index % CHART_COLORS.length]}
-                            />
+                            <Cell key={`cell-${index}`} fill={SARTHAK_CHART_COLORS[index % SARTHAK_CHART_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip />
-                        <Legend />
+                        <Tooltip
+                          contentStyle={{
+                            background: "#001145",
+                            border: "1px solid #4a5f7c",
+                            borderRadius: "12px",
+                          }}
+                          labelStyle={{ color: "#a8bdda" }}
+                          itemStyle={{ color: "#ffffff" }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  {/* Top Cities */}
+                  {/* Top Alumni Locations */}
                   <ChartCard title="Top Alumni Locations" icon={MapPin}>
-                    <ResponsiveContainer width="100%" height={320}>
+                    <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={analytics.topCities}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" />
-                        <XAxis dataKey="name" stroke="#7088aa" />
-                        <YAxis stroke="#7088aa" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" vertical={false} />
+                        <XAxis dataKey="name" stroke="#4a5f7c" tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+                        <YAxis stroke="#7088aa" tickLine={false} axisLine={false} />
                         <Tooltip
                           contentStyle={{
-                            background: "white",
-                            border: "1px solid #e4f0ff",
+                            background: "#001145",
+                            border: "1px solid #4a5f7c",
                             borderRadius: "12px",
                           }}
+                          labelStyle={{ color: "#a8bdda" }}
+                          itemStyle={{ color: "#ffffff" }}
                         />
-                        <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                           {analytics.topCities.map((_, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={CHART_COLORS[index % CHART_COLORS.length]}
-                            />
+                            <Cell key={`cell-${index}`} fill={SARTHAK_CHART_COLORS[index % SARTHAK_CHART_COLORS.length]} />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
 
-                  {/* Alumni Growth Over Time */}
+                  {/* Alumni Growth Trend */}
                   <ChartCard title="Alumni Growth Trend" icon={TrendingUp}>
-                    <ResponsiveContainer width="100%" height={320}>
+                    <ResponsiveContainer width="100%" height={300}>
                       <LineChart data={analytics.gradTrends}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" />
-                        <XAxis dataKey="year" stroke="#7088aa" />
-                        <YAxis stroke="#7088aa" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e4f0ff" vertical={false} />
+                        <XAxis dataKey="year" stroke="#4a5f7c" tickLine={false} axisLine={false} />
+                        <YAxis stroke="#7088aa" tickLine={false} axisLine={false} />
                         <Tooltip
                           contentStyle={{
-                            background: "white",
-                            border: "1px solid #e4f0ff",
+                            background: "#001145",
+                            border: "1px solid #4a5f7c",
                             borderRadius: "12px",
                           }}
+                          labelStyle={{ color: "#a8bdda" }}
+                          itemStyle={{ color: "#ffffff" }}
                         />
                         <Line
                           type="monotone"
                           dataKey="count"
-                          stroke="#0066FF"
+                          stroke="#001145"
                           strokeWidth={3}
-                          dot={{ fill: "#0066FF", strokeWidth: 2, r: 6 }}
-                          activeDot={{ r: 8, fill: "#001145" }}
+                          dot={{ fill: "#001145", strokeWidth: 2, r: 6, stroke: "#f6faff" }}
+                          activeDot={{ r: 8, fill: "#001439", stroke: "#f6faff" }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -570,32 +478,33 @@ export default function AnalyticsPage() {
   );
 }
 
-// Stat Card Component
+// Stat Card Component - Sarthak Theme (no gradients)
 function StatCard({
   icon: Icon,
   label,
   value,
   trend,
   subLabel,
-  color,
+  bgColor,
 }: {
   icon: React.ElementType;
   label: string;
   value: string | number;
   trend?: string;
   subLabel?: string;
-  color: string;
+  bgColor: string;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-[#e4f0ff] shadow-lg hover:shadow-xl transition-all p-6 group">
       <div className="flex items-start justify-between">
         <div
-          className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
+          className="h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
+          style={{ backgroundColor: bgColor }}
         >
           <Icon className="h-7 w-7 text-white" />
         </div>
         {trend && (
-          <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+          <span className="px-3 py-1 bg-[#e4f0ff] text-[#001145] text-xs font-bold rounded-full">
             {trend}
           </span>
         )}
@@ -609,7 +518,7 @@ function StatCard({
   );
 }
 
-// Chart Card Component
+// Chart Card Component - Sarthak Theme (no gradients)
 function ChartCard({
   title,
   icon: Icon,
@@ -623,12 +532,11 @@ function ChartCard({
 }) {
   return (
     <div
-      className={`bg-white rounded-2xl border border-[#e4f0ff] shadow-lg p-6 ${
-        fullWidth ? "col-span-full" : ""
-      }`}
+      className={`bg-white rounded-2xl border border-[#e4f0ff] shadow-lg p-6 ${fullWidth ? "col-span-full" : ""
+        }`}
     >
       <div className="flex items-center gap-3 mb-6">
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#0066FF] to-[#00C9A7] flex items-center justify-center">
+        <div className="h-10 w-10 rounded-xl bg-[#001145] flex items-center justify-center">
           <Icon className="h-5 w-5 text-white" />
         </div>
         <h3 className="text-lg font-bold text-[#001145]">{title}</h3>
