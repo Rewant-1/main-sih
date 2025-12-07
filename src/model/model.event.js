@@ -232,15 +232,13 @@ const eventSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware
-eventSchema.pre('save', function (next) {
+eventSchema.pre('save', async function () {
   this.updatedAt = Date.now();
 
   // Update current registrations count
   if (this.registeredUsers) {
     this.currentRegistrations = this.registeredUsers.length;
   }
-
-  next();
 });
 
 // Virtual for available spots

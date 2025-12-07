@@ -198,7 +198,7 @@ function MobileNav() {
               <Shield className="h-6 w-6" />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-bold">AlumniConnect</span>
+              <span className="text-lg font-bold">Sarthak</span>
               <span className="text-xs text-muted-foreground">Admin Portal</span>
             </div>
           </div>
@@ -265,7 +265,7 @@ function AppSidebar() {
             <Shield className="h-6 w-6" />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold">AlumniConnect</span>
+            <span className="text-lg font-bold">Sarthak</span>
             <span className="text-xs text-muted-foreground">Admin Portal</span>
           </div>
         </div>
@@ -383,7 +383,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <MobileNav />
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              <span className="font-semibold">AlumniConnect</span>
+              <span className="font-semibold">Sarthak</span>
             </div>
             <div className="flex-1" />
             <Avatar className="h-8 w-8">

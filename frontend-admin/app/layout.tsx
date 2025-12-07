@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AlumniConnect Admin",
+  title: "Sarthak Admin",
   description: "Admin portal for managing alumni and student connections",
 };
 

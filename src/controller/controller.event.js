@@ -1,11 +1,22 @@
 const EventService = require("../service/service.event.js");
 
 const createEvent = async (req, res) => {
+  console.log('[Events] createEvent called');
   try {
+    // Debug logging
+    try {
+      console.log('[Events] req.user:', req.user ? JSON.stringify(req.user) : 'undefined');
+      console.log('[Events] req.body:', req.body ? JSON.stringify(req.body) : 'undefined');
+    } catch (logErr) {
+      console.log('[Events] Error logging req:', logErr.message);
+    }
+
+    // adminId is required by the Event schema
+    const adminId = req.admin?.adminId || req.user?.userId || 'default';
     const eventData = {
       ...req.body,
       createdBy: req.user?.userId || req.body.createdBy,
-      adminId: req.admin.adminId
+      adminId: adminId
     };
 
     // Log incoming data for debugging
@@ -25,7 +36,7 @@ const createEvent = async (req, res) => {
 
 const getEvents = async (req, res) => {
   try {
-    const events = await EventService.getEvents(req.admin.adminId);
+    const events = await EventService.getEvents();
     res.status(200).json({ success: true, data: events });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -34,7 +45,7 @@ const getEvents = async (req, res) => {
 
 const getEventById = async (req, res) => {
   try {
-    const event = await EventService.getEventById(req.params.id, req.admin.adminId);
+    const event = await EventService.getEventById(req.params.id);
     if (event) {
       res.status(200).json({ success: true, data: event });
     } else {
@@ -47,7 +58,7 @@ const getEventById = async (req, res) => {
 
 const updateEvent = async (req, res) => {
   try {
-    const event = await EventService.updateEvent(req.params.id, req.body, req.admin.adminId);
+    const event = await EventService.updateEvent(req.params.id, req.body);
     if (event) {
       res.status(200).json({ success: true, data: event });
     } else {
@@ -60,7 +71,7 @@ const updateEvent = async (req, res) => {
 
 const deleteEvent = async (req, res) => {
   try {
-    const event = await EventService.deleteEvent(req.params.id, req.admin.adminId);
+    const event = await EventService.deleteEvent(req.params.id);
     if (event) {
       res.status(200).json({ success: true, message: "Event deleted successfully" });
     } else {

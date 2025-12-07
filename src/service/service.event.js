@@ -12,7 +12,9 @@ const createEvent = async (eventData) => {
 
 const getEvents = async (adminId) => {
   try {
-    const events = await Event.find({ adminId })
+    // Build filter - if adminId is provided, filter by it; otherwise return all
+    const filter = adminId ? { adminId } : {};
+    const events = await Event.find(filter)
       .populate("createdBy", "name email")
       .populate("registeredUsers", "name email")
       .sort({ date: 1 });
@@ -24,7 +26,9 @@ const getEvents = async (adminId) => {
 
 const getEventById = async (eventId, adminId) => {
   try {
-    const event = await Event.findOne({ _id: eventId, adminId })
+    // Build filter - if adminId is provided, filter by it; otherwise just by id
+    const filter = adminId ? { _id: eventId, adminId } : { _id: eventId };
+    const event = await Event.findOne(filter)
       .populate("createdBy", "name email")
       .populate("registeredUsers", "name email");
     return event;
@@ -35,8 +39,10 @@ const getEventById = async (eventId, adminId) => {
 
 const updateEvent = async (eventId, eventData, adminId) => {
   try {
+    // Build filter - if adminId is provided, filter by it; otherwise just by id
+    const filter = adminId ? { _id: eventId, adminId } : { _id: eventId };
     const updatedEvent = await Event.findOneAndUpdate(
-      { _id: eventId, adminId },
+      filter,
       eventData,
       { new: true }
     );
@@ -48,7 +54,9 @@ const updateEvent = async (eventId, eventData, adminId) => {
 
 const deleteEvent = async (eventId, adminId) => {
   try {
-    const deletedEvent = await Event.findOneAndDelete({ _id: eventId, adminId });
+    // Build filter - if adminId is provided, filter by it; otherwise just by id
+    const filter = adminId ? { _id: eventId, adminId } : { _id: eventId };
+    const deletedEvent = await Event.findOneAndDelete(filter);
     return deletedEvent;
   } catch (error) {
     throw error;
@@ -61,15 +69,15 @@ const registerForEvent = async (eventId, userId) => {
     if (!event) {
       return null;
     }
-    
+
     // Check if already registered
     if (event.registeredUsers.includes(userId)) {
       throw new Error("Already registered for this event");
     }
-    
+
     event.registeredUsers.push(userId);
     await event.save();
-    
+
     return await Event.findById(eventId)
       .populate("createdBy", "name email")
       .populate("registeredUsers", "name email");

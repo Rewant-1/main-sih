@@ -2,13 +2,19 @@ const SurveyService = require("../service/service.survey.js");
 
 const createSurvey = async (req, res) => {
   try {
-    const survey = await SurveyService.createSurvey({
+    const surveyData = {
       ...req.body,
-      createdBy: req.user.userId
-    });
+      createdBy: req.user?.userId || req.body.createdBy
+    };
+    console.log('[Surveys] Creating survey with data:', JSON.stringify(surveyData, null, 2));
+    const survey = await SurveyService.createSurvey(surveyData);
     res.status(201).json({ success: true, data: survey });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[Surveys] Error creating survey:', error);
+    const message = error.name === 'ValidationError'
+      ? `Validation Error: ${Object.values(error.errors || {}).map(e => e.message).join(', ')}`
+      : error.message;
+    res.status(500).json({ success: false, message });
   }
 };
 
@@ -17,7 +23,7 @@ const getSurveys = async (req, res) => {
     const { status, page = 1, limit = 10 } = req.query;
     const filters = {};
     if (status) filters.status = status;
-    
+
     const surveys = await SurveyService.getSurveys(filters, page, limit);
     res.status(200).json({ success: true, data: surveys });
   } catch (error) {

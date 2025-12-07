@@ -320,7 +320,10 @@ export default function CampaignsPage() {
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate} disabled={isSaving}>
+                <Button
+                  onClick={handleCreate}
+                  disabled={isSaving || !formData.title || !formData.description || !formData.startDate || !formData.endDate || formData.targetAmount <= 0}
+                >
                   {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Create Campaign
                 </Button>

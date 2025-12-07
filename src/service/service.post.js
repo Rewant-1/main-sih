@@ -12,7 +12,9 @@ const createPost = async (postData) => {
 
 const getPosts = async (adminId) => {
   try {
-    const posts = await Post.find({ adminId }).populate("postedBy").populate("likes").populate("comments.user");
+    // Build filter - if adminId is provided, filter by it; otherwise return all
+    const filter = adminId ? { adminId } : {};
+    const posts = await Post.find(filter).populate("postedBy").populate("likes").populate("comments.user");
     return posts;
   } catch (error) {
     throw error;
@@ -21,7 +23,9 @@ const getPosts = async (adminId) => {
 
 const getPostById = async (postId, adminId) => {
   try {
-    const post = await Post.findOne({ _id: postId, adminId }).populate("postedBy").populate("likes").populate("comments.user");
+    // Build filter - if adminId is provided, filter by it; otherwise just by id
+    const filter = adminId ? { _id: postId, adminId } : { _id: postId };
+    const post = await Post.findOne(filter).populate("postedBy").populate("likes").populate("comments.user");
     return post;
   } catch (error) {
     throw error;
@@ -30,8 +34,10 @@ const getPostById = async (postId, adminId) => {
 
 const updatePost = async (postId, postData, adminId) => {
   try {
+    // Build filter - if adminId is provided, filter by it; otherwise just by id
+    const filter = adminId ? { _id: postId, adminId } : { _id: postId };
     const updatedPost = await Post.findOneAndUpdate(
-      { _id: postId, adminId },
+      filter,
       postData,
       { new: true }
     );
@@ -43,7 +49,9 @@ const updatePost = async (postId, postData, adminId) => {
 
 const deletePost = async (postId, adminId) => {
   try {
-    const deletedPost = await Post.findOneAndDelete({ _id: postId, adminId });
+    // Build filter - if adminId is provided, filter by it; otherwise just by id
+    const filter = adminId ? { _id: postId, adminId } : { _id: postId };
+    const deletedPost = await Post.findOneAndDelete(filter);
     return deletedPost;
   } catch (error) {
     throw error;
@@ -51,29 +59,29 @@ const deletePost = async (postId, adminId) => {
 };
 
 const likePost = async (postId, userId) => {
-    try {
-        const post = await Post.findById(postId);
-        if (post.likes.includes(userId)) {
-            post.likes.pull(userId);
-        } else {
-            post.likes.push(userId);
-        }
-        await post.save();
-        return post;
-    } catch (error) {
-        throw error;
+  try {
+    const post = await Post.findById(postId);
+    if (post.likes.includes(userId)) {
+      post.likes.pull(userId);
+    } else {
+      post.likes.push(userId);
     }
+    await post.save();
+    return post;
+  } catch (error) {
+    throw error;
+  }
 }
 
 const commentOnPost = async (postId, commentData) => {
-    try {
-        const post = await Post.findById(postId);
-        post.comments.push(commentData);
-        await post.save();
-        return post;
-    } catch (error) {
-        throw error;
-    }
+  try {
+    const post = await Post.findById(postId);
+    post.comments.push(commentData);
+    await post.save();
+    return post;
+  } catch (error) {
+    throw error;
+  }
 }
 
 module.exports = {

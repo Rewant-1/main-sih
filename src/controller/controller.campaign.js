@@ -2,13 +2,23 @@ const CampaignService = require("../service/service.campaign.js");
 
 const createCampaign = async (req, res) => {
   try {
-    const campaign = await CampaignService.createCampaign({
+    const campaignData = {
       ...req.body,
-      organizer: req.user.userId
-    });
+      organizer: req.user?.userId || req.body.organizer
+    };
+
+    // Log incoming data for debugging
+    console.log('[Campaigns] Creating campaign with data:', JSON.stringify(campaignData, null, 2));
+
+    const campaign = await CampaignService.createCampaign(campaignData);
     res.status(201).json({ success: true, data: campaign });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[Campaigns] Error creating campaign:', error);
+    // Return more informative error for validation issues
+    const message = error.name === 'ValidationError'
+      ? `Validation Error: ${Object.values(error.errors || {}).map(e => e.message).join(', ')}`
+      : error.message;
+    res.status(500).json({ success: false, message });
   }
 };
 
@@ -18,7 +28,7 @@ const getCampaigns = async (req, res) => {
     const filters = {};
     if (status) filters.status = status;
     if (category) filters.category = category;
-    
+
     const campaigns = await CampaignService.getCampaigns(filters, page, limit);
     res.status(200).json({ success: true, data: campaigns });
   } catch (error) {

@@ -14,6 +14,7 @@ const createJob = async (jobData) => {
 const getJobs = async (filters = {}) => {
     try {
         const query = {};
+        // Only filter by adminId if provided
         if (filters.adminId) query.adminId = filters.adminId;
         if (filters.status) query.status = filters.status;
         if (filters.type) query.type = filters.type;
@@ -31,7 +32,9 @@ const getJobs = async (filters = {}) => {
 
 const getJobById = async (jobId, adminId) => {
     try {
-        const job = await Job.findOne({ _id: jobId, adminId })
+        // Build filter - if adminId provided, filter by it; otherwise just by id
+        const filter = adminId ? { _id: jobId, adminId } : { _id: jobId };
+        const job = await Job.findOne(filter)
             .populate("postedBy", "name email")
             .populate("applicants.student", "name email");
         return job;
@@ -42,8 +45,10 @@ const getJobById = async (jobId, adminId) => {
 
 const updateJob = async (jobId, jobData, adminId) => {
     try {
+        // Build filter - if adminId provided, filter by it; otherwise just by id
+        const filter = adminId ? { _id: jobId, adminId } : { _id: jobId };
         const updatedJob = await Job.findOneAndUpdate(
-            { _id: jobId, adminId },
+            filter,
             { ...jobData, updatedAt: Date.now() },
             { new: true }
         );
