@@ -20,6 +20,7 @@ const createPost = async (req, res) => {
     const post = await PostService.createPost(postData);
     res.status(201).json({ success: true, data: post });
   } catch (error) {
+    console.error('[Posts] Error creating post:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -33,6 +34,7 @@ const getPosts = async (req, res) => {
     const posts = await PostService.getPosts(collegeId);
     res.status(200).json({ success: true, data: posts });
   } catch (error) {
+    console.error('[Posts] Error fetching posts:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -50,6 +52,7 @@ const getPostById = async (req, res) => {
       res.status(404).json({ success: false, message: "Post not found" });
     }
   } catch (error) {
+    console.error('[Posts] Error fetching post by ID:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -67,6 +70,7 @@ const updatePost = async (req, res) => {
       res.status(404).json({ success: false, message: "Post not found" });
     }
   } catch (error) {
+    console.error('[Posts] Error updating post:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -84,6 +88,7 @@ const deletePost = async (req, res) => {
       res.status(404).json({ success: false, message: "Post not found" });
     }
   } catch (error) {
+    console.error('[Posts] Error deleting post:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -102,6 +107,7 @@ const likePost = async (req, res) => {
     const post = await PostService.likePost(req.params.id, userId, collegeId);
     res.status(200).json({ success: true, data: post });
   } catch (error) {
+    console.error('[Posts] Error liking post:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -122,6 +128,7 @@ const commentOnPost = async (req, res) => {
     const post = await PostService.commentOnPost(req.params.id, commentData, collegeId);
     res.status(200).json({ success: true, data: post });
   } catch (error) {
+    console.error('[Posts] Error commenting on post:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

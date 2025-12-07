@@ -1,18 +1,42 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, LayoutDashboard, Users, Calendar, BookOpen } from "lucide-react";
 import Image from "next/image";
 import { useAuthStore } from "@/lib/stores";
 import { useToast } from "@/hooks/use-toast";
+import api from "@/lib/api-client";
 
 const SarthakAdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
   const { login, logout, isLoading: storeLoading } = useAuthStore();
   const { toast } = useToast();
+
+  // Check if user is already logged in and redirect to dashboard
+  useEffect(() => {
+    const checkExistingAuth = async () => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      if (token) {
+        try {
+          const res = await api.get("/auth/me");
+          if (res.data?.data?.userType === "Admin") {
+            router.replace("/dashboard");
+            return;
+          }
+        } catch {
+          // Token invalid, clear it
+          localStorage.removeItem("token");
+          localStorage.removeItem("auth-storage");
+        }
+      }
+      setCheckingAuth(false);
+    };
+    checkExistingAuth();
+  }, [router]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -138,7 +162,7 @@ const SarthakAdminLogin = () => {
       {/* =============================== */}
       {/* 1) GLOBAL WHITE LOADING UI     */}
       {/* =============================== */}
-      {(loading || storeLoading) && (
+      {(loading || storeLoading || checkingAuth) && (
         <div className="fixed inset-0 bg-white flex flex-col justify-center items-center z-50 animate-fadeInCentered">
           {/* Circle Loader */}
           <div className="relative w-48 h-48 mb-6">

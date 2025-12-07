@@ -11,7 +11,12 @@ const createCampaign = async (req, res) => {
     }, adminId);
     res.status(201).json({ success: true, data: campaign });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[Campaigns] Error creating campaign:', error);
+    // Return more informative error for validation issues
+    const message = error.name === 'ValidationError'
+      ? `Validation Error: ${Object.values(error.errors || {}).map(e => e.message).join(', ')}`
+      : error.message;
+    res.status(500).json({ success: false, message });
   }
 };
 

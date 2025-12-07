@@ -22,7 +22,7 @@ const createJob = async (req, res) => {
         });
         res.status(201).json({ success: true, message: "Job created successfully.", data: job });
     } catch (error) {
-        console.error("Error creating job:", error);
+        console.error("[Jobs] Error creating job:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -41,6 +41,7 @@ const getJobs = async (req, res) => {
         const jobs = await JobService.getJobs(filters);
         res.status(200).json({ success: true, data: jobs });
     } catch (error) {
+        console.error("[Jobs] Error fetching jobs:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -57,6 +58,7 @@ const getJobById = async (req, res) => {
             res.status(404).json({ success: false, message: "Job not found" });
         }
     } catch (error) {
+        console.error("[Jobs] Error fetching job by ID:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -73,6 +75,7 @@ const updateJob = async (req, res) => {
             res.status(404).json({ success: false, message: "Job not found" });
         }
     } catch (error) {
+        console.error("[Jobs] Error updating job:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -89,6 +92,7 @@ const deleteJob = async (req, res) => {
             res.status(404).json({ success: false, message: "Job not found" });
         }
     } catch (error) {
+        console.error("[Jobs] Error deleting job:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -115,6 +119,7 @@ const applyToJob = async (req, res) => {
         const updatedJob = await JobService.applyToJob(req.params.id, applicantData);
         res.status(200).json({ success: true, data: updatedJob });
     } catch (error) {
+        console.error("[Jobs] Error applying to job:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -139,6 +144,7 @@ const updateApplicationStatus = async (req, res) => {
             res.status(404).json({ success: false, message: "Application not found" });
         }
     } catch (error) {
+        console.error("[Jobs] Error updating application status:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -152,6 +158,7 @@ const getMyJobs = async (req, res) => {
         const jobs = await JobService.getJobsByPostedBy(userId);
         res.status(200).json({ success: true, data: jobs });
     } catch (error) {
+        console.error("[Jobs] Error fetching my jobs:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -168,6 +175,7 @@ const closeJobApplications = async (req, res) => {
         const job = await JobService.closeApplications(req.params.id);
         res.status(200).json({ success: true, data: job });
     } catch (error) {
+        console.error("[Jobs] Error closing job applications:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

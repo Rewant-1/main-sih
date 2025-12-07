@@ -6,32 +6,38 @@ const studentModel = require("../model/model.student.js");
 
 const getStudents = async (req, res) => {
     try {
-        const students = await StudentService.getStudents(req.admin.adminId);
+        // Support both req.admin.adminId (from verifyAdmin) and req.user.userId (from authenticateToken)
+        const adminId = req.admin?.adminId || req.user?.userId || null;
+        const students = await StudentService.getStudents(adminId);
         res.status(200).json({ success: true, data: students });
     } catch (error) {
+        console.error('[Students] Error fetching students:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 const getStudentById = async (req, res) => {
     try {
-        const student = await StudentService.getStudentById(req.params.id, req.admin.adminId);
+        const adminId = req.admin?.adminId || req.user?.userId || null;
+        const student = await StudentService.getStudentById(req.params.id, adminId);
         if (student) {
             res.status(200).json({ success: true, data: student });
         } else {
             res.status(404).json({ success: false, message: "Student not found" });
         }
     } catch (error) {
+        console.error('[Students] Error fetching student by ID:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
 const updateStudent = async (req, res) => {
     try {
+        const adminId = req.admin?.adminId || req.user?.userId || null;
         const student = await StudentService.updateStudent(
             req.params.id,
             req.body,
-            req.admin.adminId
+            adminId
         );
         if (student) {
             res.status(200).json({ success: true, data: student });
@@ -39,6 +45,7 @@ const updateStudent = async (req, res) => {
             res.status(404).json({ success: false, message: "Student not found" });
         }
     } catch (error) {
+        console.error('[Students] Error updating student:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -60,6 +67,8 @@ const createStudents = async (req, res) => {
 
     try {
         const createdStudents = [];
+        // Use adminId from either source
+        const adminId = req.admin?.adminId || req.user?.userId || null;
 
         for (const studentData of students) {
             if (
@@ -70,8 +79,7 @@ const createStudents = async (req, res) => {
                 !studentData.academic?.degreeName
             ) {
                 throw new Error(
-                    `Missing fields for student: ${
-                        studentData.email || "Unknown"
+                    `Missing fields for student: ${studentData.email || "Unknown"
                     }`
                 );
             }
@@ -92,7 +100,7 @@ const createStudents = async (req, res) => {
                         email: studentData.email,
                         passwordHash: hashedPassword,
                         userType: "Student",
-                        adminId: req.admin.adminId,
+                        adminId: adminId,
                     },
                 ],
                 { session }
@@ -102,7 +110,7 @@ const createStudents = async (req, res) => {
                 [
                     {
                         userId: user._id,
-                        adminId: req.admin.adminId,
+                        adminId: adminId,
                         academic: studentData.academic,
                     },
                 ],

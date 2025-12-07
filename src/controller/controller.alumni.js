@@ -2,47 +2,56 @@ const AlumniService = require("../service/service.alumni.js");
 
 const getAlumni = async (req, res) => {
   try {
-    const alumni = await AlumniService.getAlumni(req.admin.adminId);
+    // Support both req.admin.adminId (from checkAdminRole) and req.user.userId (from authenticateToken)
+    const adminId = req.admin?.adminId || req.user?.userId || null;
+    const alumni = await AlumniService.getAlumni(adminId);
     res.status(200).json({ success: true, data: alumni });
   } catch (error) {
+    console.error('[Alumni] Error fetching alumni:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
 const getAlumniById = async (req, res) => {
   try {
-    const alumni = await AlumniService.getAlumniById(req.params.id, req.admin.adminId);
+    const adminId = req.admin?.adminId || req.user?.userId || null;
+    const alumni = await AlumniService.getAlumniById(req.params.id, adminId);
     if (alumni) {
       res.status(200).json({ success: true, data: alumni });
     } else {
       res.status(404).json({ success: false, error: "Alumni not found" });
     }
   } catch (error) {
+    console.error('[Alumni] Error fetching alumni by ID:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
 const updateAlumni = async (req, res) => {
   try {
-    const alumni = await AlumniService.updateAlumni(req.params.id, req.body, req.admin.adminId);
+    const adminId = req.admin?.adminId || req.user?.userId || null;
+    const alumni = await AlumniService.updateAlumni(req.params.id, req.body, adminId);
     if (alumni) {
       res.status(200).json({ success: true, data: alumni });
     } else {
       res.status(404).json({ success: false, error: "Alumni not found" });
     }
   } catch (error) {
+    console.error('[Alumni] Error updating alumni:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
 const verifyAlumni = async (req, res) => {
   try {
-    const alumni = await AlumniService.verifyAlumni(req.params.id, req.admin.adminId);
+    const adminId = req.admin?.adminId || req.user?.userId || null;
+    const alumni = await AlumniService.verifyAlumni(req.params.id, adminId);
     if (!alumni) {
       return res.status(404).json({ success: false, error: "Alumni not found" });
     }
     res.status(200).json({ success: true, data: alumni, message: "Alumni verified successfully." });
   } catch (error) {
+    console.error('[Alumni] Error verifying alumni:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -68,6 +77,8 @@ const createAlumni = async (req, res) => {
 
     try {
       const createdAlumni = [];
+      // Use optional chaining for adminId
+      const adminId = req.admin?.adminId || req.user?.userId || null;
 
       for (const alumniData of alumni) {
         if (!alumniData.name || !alumniData.email || !alumniData.password || !alumniData.graduationYear || !alumniData.degreeUrl) {
@@ -86,18 +97,18 @@ const createAlumni = async (req, res) => {
           email: alumniData.email,
           passwordHash: hashedPassword,
           userType: "Alumni",
-          adminId: req.admin.adminId,
+          adminId: adminId,
         }], { session });
 
-        const [alumni] = await AlumniModel.create([{
+        const [alum] = await AlumniModel.create([{
           userId: user._id,
-          adminId: req.admin.adminId,
+          adminId: adminId,
           graduationYear: alumniData.graduationYear,
           degreeUrl: alumniData.degreeUrl,
           verified: false, // Admin can verify later
         }], { session });
 
-        user.profileDetails = alumni._id;
+        user.profileDetails = alum._id;
         await user.save({ session });
         createdAlumni.push(user);
       }

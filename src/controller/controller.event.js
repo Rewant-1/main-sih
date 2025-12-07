@@ -6,6 +6,7 @@ const getCollegeId = (req) => {
 };
 
 const createEvent = async (req, res) => {
+  console.log('[Events] createEvent called');
   try {
     const collegeId = getCollegeId(req);
     if (!collegeId) {
@@ -17,10 +18,19 @@ const createEvent = async (req, res) => {
       createdBy: req.user?.userId || req.body.createdBy,
       adminId: collegeId
     };
+
+    // Log incoming data for debugging
+    console.log('[Events] Creating event with data:', JSON.stringify(eventData, null, 2));
+
     const event = await EventService.createEvent(eventData);
     res.status(201).json({ success: true, data: event });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[Events] Error creating event:', error);
+    // Return more informative error for validation issues
+    const message = error.name === 'ValidationError'
+      ? `Validation Error: ${Object.values(error.errors || {}).map(e => e.message).join(', ')}`
+      : error.message;
+    res.status(500).json({ success: false, message });
   }
 };
 

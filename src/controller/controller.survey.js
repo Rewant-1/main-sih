@@ -11,7 +11,11 @@ const createSurvey = async (req, res) => {
     }, adminId);
     res.status(201).json({ success: true, data: survey });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[Surveys] Error creating survey:', error);
+    const message = error.name === 'ValidationError'
+      ? `Validation Error: ${Object.values(error.errors || {}).map(e => e.message).join(', ')}`
+      : error.message;
+    res.status(500).json({ success: false, message });
   }
 };
 

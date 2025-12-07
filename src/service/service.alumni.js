@@ -2,8 +2,10 @@ const Alumni = require("../model/model.alumni.js");
 
 const getAlumni = async (adminId) => {
   try {
+    // Build filter - if adminId is provided, filter by it; otherwise return all
+    const filter = adminId ? { adminId } : {};
     // Query Alumni model and populate userId to get user details (name, email)
-    const alumni = await Alumni.find({ adminId }).populate('userId', 'name email username userType createdAt');
+    const alumni = await Alumni.find(filter).populate('userId', 'name email username userType createdAt');
     return alumni;
   } catch (error) {
     throw error;
@@ -29,7 +31,7 @@ const updateAlumni = async (alumniId, alumniData, adminId) => {
     // Update Alumni document fields (verified, graduationYear, skills, degreeUrl)
     const updatedAlumni = await Alumni.findOneAndUpdate(
       { _id: alumniId, adminId },
-      alumniData, 
+      alumniData,
       { new: true }
     ).populate('userId', 'name email username userType createdAt');
     return updatedAlumni;
